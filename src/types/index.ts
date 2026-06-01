@@ -1,0 +1,370 @@
+// types/index.ts
+// ============================================
+// Markiq — TypeScript Types
+// ============================================
+
+// ===== ENUMS =====
+
+export type UserRole =
+  | "admin"
+  | "campaign_manager"
+  | "content_specialist"
+  | "data_analyst"
+  | "ads_specialist";
+
+export type ClientStatus = "active" | "pending" | "inactive";
+
+export type ClientSector =
+  | "restaurants"
+  | "salons"
+  | "clinics"
+  | "retail"
+  | "ecommerce"
+  | "education"
+  | "real_estate"
+  | "other";
+
+export type ContentLanguage =
+  | "arabic_saudi"
+  | "arabic_gulf"
+  | "arabic_egyptian"
+  | "arabic_formal"
+  | "english"
+  | "bilingual";
+
+export type CampaignStatus =
+  | "draft"
+  | "pending_review"
+  | "active"
+  | "paused"
+  | "ended";
+
+export type ContentType = "image" | "video" | "text" | "story" | "reel" | "ugc";
+
+export type ContentStatus =
+  | "draft"
+  | "pending_review"
+  | "approved"
+  | "rejected"
+  | "published"
+  | "archived";
+
+export type AlertType =
+  | "budget_exceeded"
+  | "budget_warning"
+  | "ctr_low"
+  | "roi_low"
+  | "content_pending"
+  | "contract_renewal"
+  | "saudi_occasion"
+  | "campaign_ended"
+  | "performance_goal_reached";
+
+export type AlertPriority = "urgent" | "warning" | "info" | "success";
+
+export type Platform =
+  | "instagram"
+  | "snapchat"
+  | "google"
+  | "tiktok"
+  | "twitter"
+  | "youtube"
+  | "facebook"
+  | "maps";
+
+// ===== ENTITIES =====
+
+export interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  avatarUrl?: string;
+  isActive: boolean;
+  lastSeenAt?: string;
+  createdAt: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  nameEn?: string;
+  sector: ClientSector;
+  city: string;
+  neighborhood: string;
+  targetAreas: string[];
+  targetAge?: string;
+  targetGender: "all" | "male" | "female";
+  interests: string[];
+  contentLanguage: ContentLanguage;
+  platforms: Platform[];
+  goals: string[];
+  seoKeywords: string[];
+  seoLevel: "none" | "weak" | "good" | "excellent";
+  websiteUrl?: string;
+  instagramUrl?: string;
+  competitors: string[];
+  description?: string;
+  budgetMonthly?: number;
+  assignedTo?: string;
+  status: ClientStatus;
+  contractStart?: string;
+  contractEnd?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  // Relations
+  strategy?: Strategy;
+  activeCampaigns?: number;
+  totalSpend?: number;
+  roi?: number;
+}
+
+export interface Strategy {
+  id: string;
+  clientId: string;
+  summary: string;
+  kpiOrdersTarget?: number;
+  kpiRoiTarget?: number;
+  kpiCpoTarget?: number;
+  kpiImpressionsTarget?: number;
+  peakTimes: Record<string, string[]>;
+  phases: StrategyPhase[];
+  aiRecommendations: AIRecommendation[];
+  approvedBy?: string;
+  approvedAt?: string;
+  version: number;
+  createdAt: string;
+  // AI analysis
+  audienceAnalysis?: {
+    segments: string[];
+    areas: string[];
+    interests: string[];
+  };
+}
+
+export interface StrategyPhase {
+  title: string;
+  description: string;
+  duration: string;
+  status: "done" | "active" | "pending";
+}
+
+export interface AIRecommendation {
+  text: string;
+  priority: "urgent" | "medium" | "low" | "planning";
+}
+
+export interface Campaign {
+  id: string;
+  clientId: string;
+  name: string;
+  goal?: string;
+  platforms: Platform[];
+  budgetTotal: number;
+  budgetDistribution: Partial<Record<Platform, number>>;
+  startDate?: string;
+  endDate?: string;
+  aiNotes?: string;
+  status: CampaignStatus;
+  // Performance
+  impressions: number;
+  clicks: number;
+  orders: number;
+  spend: number;
+  roi?: number;
+  ctr?: number;
+  cpo?: number;
+  // Meta
+  createdBy: string;
+  approvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Relations
+  platformBudgets?: PlatformBudget[];
+  contents?: Content[];
+}
+
+export interface PlatformBudget {
+  id: string;
+  campaignId: string;
+  platform: Platform;
+  budgetLimit: number;
+  spent: number;
+  isPaused: boolean;
+  externalCampaignId?: string;
+  // Calculated
+  percentage?: number;
+  status?: "ok" | "warning" | "exceeded";
+  roi?: number;
+}
+
+export interface Content {
+  id: string;
+  campaignId: string;
+  clientId: string;
+  platform: Platform;
+  type: ContentType;
+  caption?: string;
+  hashtags: string[];
+  imageUrl?: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  aiPrompt?: string;
+  aiScore?: number;
+  aiFeedback?: Record<string, number>;
+  scheduledAt?: string;
+  publishedAt?: string;
+  status: ContentStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  // Performance
+  reach: number;
+  impressions: number;
+  engagements: number;
+  clicks: number;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface Alert {
+  id: string;
+  clientId?: string;
+  campaignId?: string;
+  type: AlertType;
+  priority: AlertPriority;
+  title: string;
+  message: string;
+  actionUrl?: string;
+  isRead: boolean;
+  isResolved: boolean;
+  resolvedBy?: string;
+  resolvedAt?: string;
+  autoGenerated: boolean;
+  createdAt: string;
+  // Relations
+  client?: Pick<Client, "id" | "name">;
+  campaign?: Pick<Campaign, "id" | "name">;
+}
+
+export interface Contract {
+  id: string;
+  clientId: string;
+  contractNumber: string;
+  startDate: string;
+  endDate: string;
+  monthlyValue: number;
+  annualValue?: number;
+  status: "active" | "expired" | "cancelled";
+  fileUrl?: string;
+  signedAt?: string;
+  createdAt: string;
+}
+
+export interface Invoice {
+  id: string;
+  clientId: string;
+  contractId?: string;
+  invoiceNumber: string;
+  amount: number;
+  vatAmount: number;
+  totalAmount: number;
+  billingPeriod?: string;
+  dueDate?: string;
+  paidAt?: string;
+  status: "pending" | "paid" | "overdue" | "cancelled";
+  stripeInvoiceId?: string;
+  createdAt: string;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  clientId?: string;
+  campaignId?: string;
+  assignedTo?: string;
+  dueAt?: string;
+  status: "todo" | "in_progress" | "done";
+  priority: "urgent" | "today" | "scheduled" | "low";
+  completedAt?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  action: string;
+  entityType?: string;
+  entityId?: string;
+  oldValue?: Record<string, unknown>;
+  newValue?: Record<string, unknown>;
+  ipAddress?: string;
+  createdAt: string;
+  // Relations
+  user?: Pick<User, "id" | "fullName" | "role">;
+}
+
+// ===== API RESPONSES =====
+
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+// ===== DASHBOARD =====
+
+export interface DashboardStats {
+  activeClients: number;
+  activeCampaigns: number;
+  campaignSuccessRate: number;
+  monthlyRevenue: number;
+  totalAdSpend: number;
+  urgentAlerts: number;
+  clientsHitGoal: number;
+  totalClients: number;
+}
+
+// ===== FILTERS =====
+
+export interface ClientFilters {
+  status?: ClientStatus;
+  sector?: ClientSector;
+  assignedTo?: string;
+  search?: string;
+}
+
+export interface CampaignFilters {
+  clientId?: string;
+  status?: CampaignStatus;
+  platform?: Platform;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface ContentFilters {
+  campaignId?: string;
+  clientId?: string;
+  status?: ContentStatus;
+  platform?: Platform;
+  type?: ContentType;
+}
+
+export interface AlertFilters {
+  clientId?: string;
+  type?: AlertType;
+  priority?: AlertPriority;
+  isRead?: boolean;
+  isResolved?: boolean;
+}
