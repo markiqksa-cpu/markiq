@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   CreditCard, Wallet, AlertTriangle, TrendingUp,
-  PlayerPause, Plus, Edit, RefreshCw, Receipt
+  PauseCircle, Plus, Edit, RefreshCw, Receipt
 } from "lucide-react";
 import TopNav from "@/components/layout/TopNav";
 import Breadcrumb from "@/components/layout/Breadcrumb";
@@ -99,7 +99,7 @@ export default function BudgetManagementPage() {
         subtitle="مايو 2026 — بطاقة العميل مرتبطة"
         actions={
           <>
-            <Button variant="danger" icon={<PlayerPause size={11} />}>إيقاف طارئ</Button>
+            <Button variant="danger" icon={<PauseCircle size={11} />}>إيقاف طارئ</Button>
             <Button variant="outline" icon={<Receipt size={11} />}>تقرير</Button>
             <Button icon={<Edit size={11} />}>تعديل الميزانية</Button>
           </>
@@ -123,7 +123,7 @@ export default function BudgetManagementPage() {
               </div>
               <div className="flex gap-2">
                 <button className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 text-white rounded-lg text-[11px] font-medium hover:bg-red-600 transition-colors">
-                  <PlayerPause size={11} /> إيقاف قوقل
+                  <PauseCircle size={11} /> إيقاف قوقل
                 </button>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-500 text-white rounded-lg text-[11px] font-medium hover:bg-primary-600 transition-colors">
                   <Plus size={11} /> زيادة الحد 500 ر.س
@@ -234,7 +234,7 @@ export default function BudgetManagementPage() {
                         <Edit size={11} />
                       </button>
                       <button className={`w-7 h-7 rounded-lg border flex items-center justify-center ${isOver ? "border-red-200 bg-red-50 text-red-400 hover:bg-red-100" : "border-gray-200 bg-white text-gray-400 hover:border-gray-300"}`}>
-                        <PlayerPause size={11} />
+                        <PauseCircle size={11} />
                       </button>
                     </>
                   )}
