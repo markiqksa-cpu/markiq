@@ -294,5 +294,5 @@ export default function BudgetManagementPage() {
 }
 
 // Missing components
-function PlayerPause(props: { size: number }) { return <span style={{ fontSize: props.size }}>⏸</span>; }
-function Receipt(props: { size: number }) { return <span style={{ fontSize: props.size }}>🧾</span>; }
+
+
