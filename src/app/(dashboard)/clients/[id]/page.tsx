@@ -253,7 +253,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
                   <div className="text-xs text-gray-400 py-3 text-center">لا توجد منصات محددة</div>
                 )}
 
-                {(client.website_url || client.instagram_url) && (
+                {(!!client.website_url || !!client.instagram_url) && (
                   <div className="mt-3 pt-3 border-t border-gray-100 space-y-1.5">
                     {client.website_url && (
                       <div className="flex justify-between text-xs">
