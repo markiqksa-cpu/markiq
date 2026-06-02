@@ -4,62 +4,42 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   MapPin, Smartphone, Calendar, Plus, FileText, Edit,
-  Users, Target, Clock, Map, Brain, TrendingUp,
-  AlertTriangle, CheckCircle, BarChart2, CreditCard,
-  FileCheck, Receipt, ChevronRight, Loader2
+  Target, Brain, TrendingUp,
+  BarChart2, FileCheck, ChevronRight, Loader2
 } from "lucide-react";
 import TopNav from "@/components/layout/TopNav";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import {
   Button, Card, CardHeader, Badge, StatusBadge,
-  KpiCard, ProgressBar, PlatformIcon, AlertDot
+  KpiCard, ProgressBar, PlatformIcon
 } from "@/components/ui";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
-// ===== TYPES =====
 interface ClientProfileProps {
   params: { id: string };
 }
 
-// ===== PLATFORM LABEL MAP =====
 const PLATFORM_LABELS: Record<string, string> = {
-  instagram: "انستقرام",
-  snapchat: "سناب شات",
-  google: "قوقل",
-  tiktok: "تيك توك",
-  twitter: "تويتر",
-  facebook: "فيسبوك",
-  youtube: "يوتيوب",
-  maps: "قوقل ماب",
+  instagram: "انستقرام", snapchat: "سناب شات", google: "قوقل",
+  tiktok: "تيك توك", twitter: "تويتر", facebook: "فيسبوك",
+  youtube: "يوتيوب", maps: "قوقل ماب",
 };
 
 const SECTOR_LABELS: Record<string, string> = {
-  restaurants: "مطاعم وكافيهات",
-  salons: "صالونات ومراكز تجميل",
-  clinics: "عيادات وصحة",
-  retail: "متاجر وبيع بالتجزئة",
-  ecommerce: "تجارة إلكترونية",
-  education: "تعليم وتدريب",
-  real_estate: "عقارات",
-  other: "أخرى",
+  restaurants: "مطاعم وكافيهات", salons: "صالونات ومراكز تجميل",
+  clinics: "عيادات وصحة", retail: "متاجر وبيع بالتجزئة",
+  ecommerce: "تجارة إلكترونية", education: "تعليم وتدريب",
+  real_estate: "عقارات", other: "أخرى",
 };
 
 const LANGUAGE_LABELS: Record<string, string> = {
-  arabic_saudi: "عربي — لهجة سعودية",
-  arabic_gulf: "عربي — لهجة خليجي",
-  arabic_egyptian: "عربي — لهجة مصرية",
-  arabic_formal: "عربي — فصيح",
-  english: "إنجليزي",
-  bilingual: "ثنائي (عربي + إنجليزي)",
+  arabic_saudi: "عربي — لهجة سعودية", arabic_gulf: "عربي — لهجة خليجي",
+  arabic_egyptian: "عربي — لهجة مصرية", arabic_formal: "عربي — فصيح",
+  english: "إنجليزي", bilingual: "ثنائي (عربي + إنجليزي)",
 };
 
-// ===== TABS =====
-const TABS = [
-  "نظرة عامة", "الاستراتيجية", "الحملات",
-  "الأداء", "الميزانية", "المحتوى", "العقد والفواتير"
-];
+const TABS = ["نظرة عامة", "الاستراتيجية", "الحملات", "الأداء", "الميزانية", "المحتوى", "العقد والفواتير"];
 
-// ===== MAIN COMPONENT =====
 export default function ClientProfilePage({ params }: ClientProfileProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [client, setClient] = useState<Record<string, unknown> | null>(null);
@@ -74,13 +54,9 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
       try {
         const { data, error: err } = await supabase
           .from("clients")
-          .select(`
-            *,
-            campaigns(id, name, status, budget_total, spend, platforms)
-          `)
+          .select(`*, campaigns(id, name, status, budget_total, spend, platforms)`)
           .eq("id", params.id)
           .single();
-
         if (err) throw err;
         setClient(data);
       } catch (err) {
@@ -92,7 +68,6 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
     fetchClient();
   }, [params.id]);
 
-  // ===== Loading =====
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
@@ -104,7 +79,6 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
     );
   }
 
-  // ===== Error =====
   if (error || !client) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
@@ -116,34 +90,31 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
     );
   }
 
-  // ===== Data =====
-  const name = (client.name as string) || "";
-  const sector = SECTOR_LABELS[(client.sector as string)] || (client.sector as string) || "";
-  const city = (client.city as string) || "";
-  const neighborhood = (client.neighborhood as string) || "";
+  const name = String(client.name || "");
+  const sector = SECTOR_LABELS[String(client.sector || "")] || String(client.sector || "");
+  const city = String(client.city || "");
+  const neighborhood = String(client.neighborhood || "");
   const platforms = (client.platforms as string[]) || [];
-  const status = (client.status as string) || "pending";
-  const budgetMonthly = (client.budget_monthly as number) || 0;
+  const status = String(client.status || "pending");
+  const budgetMonthly = Number(client.budget_monthly || 0);
   const goals = (client.goals as string[]) || [];
   const targetAreas = (client.target_areas as string[]) || [];
-  const targetAge = (client.target_age as string) || "—";
-  const targetGender = (client.target_gender as string) || "all";
-  const contentLanguage = LANGUAGE_LABELS[(client.content_language as string)] || (client.content_language as string) || "—";
+  const targetAge = String(client.target_age || "—");
+  const targetGender = String(client.target_gender || "all");
+  const contentLanguage = LANGUAGE_LABELS[String(client.content_language || "")] || String(client.content_language || "—");
+  const websiteUrl = String(client.website_url || "");
+  const instagramUrl = String(client.instagram_url || "");
   const campaigns = (client.campaigns as Record<string, unknown>[]) || [];
   const activeCampaigns = campaigns.filter(c => c.status === "active").length;
-  const totalSpend = campaigns.reduce((s, c) => s + ((c.spend as number) || 0), 0);
-  const createdAt = client.created_at ? new Date(client.created_at as string).toLocaleDateString("ar-SA", { month: "long", year: "numeric" }) : "—";
-
+  const totalSpend = campaigns.reduce((s, c) => s + Number(c.spend || 0), 0);
+  const createdAt = client.created_at
+    ? new Date(String(client.created_at)).toLocaleDateString("ar-SA", { month: "long", year: "numeric" })
+    : "—";
   const genderLabel = targetGender === "all" ? "الجميع" : targetGender === "male" ? "رجال" : "نساء";
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
-      <TopNav
-        currentClient={{ id: params.id, name }}
-        alertCount={3}
-        user={{ name: "عمر", email: "omar@markiq.sa", role: "admin" }}
-      />
-
+      <TopNav currentClient={{ id: params.id, name }} alertCount={3} user={{ name: "عمر", email: "omar@markiq.sa", role: "admin" }} />
       <Breadcrumb items={[
         { label: "لوحة التحكم", href: "/dashboard" },
         { label: "العملاء", href: "/clients" },
@@ -173,9 +144,9 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             <div className="grid grid-cols-4 gap-2 mt-3">
               {[
                 { val: activeCampaigns, lbl: "حملات نشطة" },
-                { val: budgetMonthly > 0 ? `${budgetMonthly.toLocaleString()}` : "—", lbl: "ميزانية (ر.س)" },
+                { val: budgetMonthly > 0 ? budgetMonthly.toLocaleString() : "—", lbl: "ميزانية (ر.س)" },
                 { val: campaigns.length, lbl: "إجمالي الحملات" },
-                { val: totalSpend > 0 ? `${totalSpend.toLocaleString()}` : "—", lbl: "إجمالي الإنفاق" },
+                { val: totalSpend > 0 ? totalSpend.toLocaleString() : "—", lbl: "إجمالي الإنفاق" },
               ].map((s, i) => (
                 <div key={i} className="bg-gray-50 rounded-lg p-2 text-center">
                   <div className="text-base font-semibold text-gray-900">{s.val}</div>
@@ -200,9 +171,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
           {TABS.map((tab, i) => (
             <button key={i} onClick={() => setActiveTab(i)}
               className={`px-4 py-2.5 text-xs border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === i
-                  ? "border-primary-500 text-primary-500 font-semibold"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                activeTab === i ? "border-primary-500 text-primary-500 font-semibold" : "border-transparent text-gray-500 hover:text-gray-700"
               }`}>
               {tab}
             </button>
@@ -213,13 +182,13 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
       {/* Tab Content */}
       <div className="p-4 max-w-[1400px] mx-auto space-y-4">
 
-        {/* ===== TAB 0: نظرة عامة ===== */}
+        {/* TAB 0: نظرة عامة */}
         {activeTab === 0 && (
           <>
             <div className="grid grid-cols-3 gap-3">
               <KpiCard value={budgetMonthly > 0 ? `${(budgetMonthly / 1000).toFixed(1)}K` : "—"} label="الميزانية الشهرية (ر.س)" icon={<BarChart2 size={13} />} iconColor="text-primary-500" iconBg="bg-primary-light" />
               <KpiCard value={activeCampaigns} label="حملة نشطة" icon={<TrendingUp size={13} />} iconColor="text-green-600" iconBg="bg-green-50" />
-              <KpiCard value={totalSpend > 0 ? `${totalSpend.toLocaleString()}` : "—"} label="إجمالي الإنفاق (ر.س)" icon={<Target size={13} />} iconColor="text-yellow-700" iconBg="bg-yellow-50" />
+              <KpiCard value={totalSpend > 0 ? totalSpend.toLocaleString() : "—"} label="إجمالي الإنفاق (ر.س)" icon={<Target size={13} />} iconColor="text-yellow-700" iconBg="bg-yellow-50" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Card>
@@ -252,44 +221,41 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
                 ) : (
                   <div className="text-xs text-gray-400 py-3 text-center">لا توجد منصات محددة</div>
                 )}
-
-                {(!!client.website_url || !!client.instagram_url) && (
+                {(websiteUrl || instagramUrl) && (
                   <div className="mt-3 pt-3 border-t border-gray-100 space-y-1.5">
-                    {client.website_url && (
+                    {websiteUrl && (
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">الموقع</span>
-                        <a href={client.website_url as string} target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline truncate max-w-[180px]">{client.website_url as string}</a>
+                        <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline truncate max-w-[180px]">{websiteUrl}</a>
                       </div>
                     )}
-                    {client.instagram_url && (
+                    {instagramUrl && (
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">انستقرام</span>
-                        <span className="text-gray-700">{client.instagram_url as string}</span>
+                        <span className="text-gray-700">{instagramUrl}</span>
                       </div>
                     )}
                   </div>
                 )}
               </Card>
             </div>
-
-            {/* Campaigns quick view */}
             {campaigns.length > 0 && (
               <Card>
                 <CardHeader title="الحملات" icon={<Target size={14} />} action="عرض الكل" />
                 {campaigns.slice(0, 4).map((camp, i) => {
                   const campPlatforms = (camp.platforms as string[]) || [];
-                  const budget = (camp.budget_total as number) || 0;
-                  const spend = (camp.spend as number) || 0;
+                  const budget = Number(camp.budget_total || 0);
+                  const spend = Number(camp.spend || 0);
                   const pct = budget > 0 ? Math.round((spend / budget) * 100) : 0;
                   return (
                     <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
                       {campPlatforms[0] && <PlatformIcon platform={campPlatforms[0]} size="sm" />}
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-gray-800 mb-1">{camp.name as string}</div>
+                        <div className="text-xs font-medium text-gray-800 mb-1">{String(camp.name || "")}</div>
                         <ProgressBar value={pct} max={100} height="h-[3px]" />
                       </div>
                       <span className="text-[10px] text-gray-500">{pct}%</span>
-                      <StatusBadge status={camp.status as string} />
+                      <StatusBadge status={String(camp.status || "")} />
                     </div>
                   );
                 })}
@@ -298,7 +264,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
           </>
         )}
 
-        {/* ===== TAB 1: الاستراتيجية ===== */}
+        {/* TAB 1: الاستراتيجية */}
         {activeTab === 1 && (
           <div className="text-center py-16">
             <Brain size={32} className="mx-auto mb-3 text-gray-300" />
@@ -310,7 +276,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
           </div>
         )}
 
-        {/* ===== TAB 2: الحملات ===== */}
+        {/* TAB 2: الحملات */}
         {activeTab === 2 && (
           <Card>
             <div className="flex items-center justify-between mb-3">
@@ -327,20 +293,20 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             ) : (
               campaigns.map((camp, i) => {
                 const campPlatforms = (camp.platforms as string[]) || [];
-                const budget = (camp.budget_total as number) || 0;
-                const spend = (camp.spend as number) || 0;
+                const budget = Number(camp.budget_total || 0);
+                const spend = Number(camp.spend || 0);
                 const pct = budget > 0 ? Math.round((spend / budget) * 100) : 0;
                 return (
-                  <Link key={i} href={`/campaigns/${camp.id}`}
+                  <Link key={i} href={`/campaigns/${String(camp.id)}`}
                     className="flex items-center gap-3 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 -mx-1 px-1 rounded-lg transition-colors">
                     {campPlatforms[0] && <PlatformIcon platform={campPlatforms[0]} />}
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-gray-800 mb-1">{camp.name as string}</div>
+                      <div className="text-xs font-medium text-gray-800 mb-1">{String(camp.name || "")}</div>
                       <div className="text-[10px] text-gray-500 mb-1">{budget.toLocaleString()} ر.س</div>
                       <ProgressBar value={pct} max={100} height="h-[3px]" />
                     </div>
                     <span className="text-[10px] text-gray-500 flex-shrink-0">{pct}%</span>
-                    <StatusBadge status={camp.status as string} />
+                    <StatusBadge status={String(camp.status || "")} />
                     <ChevronRight size={13} className="text-gray-300 rotate-180" />
                   </Link>
                 );
@@ -349,7 +315,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
           </Card>
         )}
 
-        {/* ===== TABs 3-6: قريباً ===== */}
+        {/* TABs 3-6 */}
         {(activeTab === 3 || activeTab === 4 || activeTab === 5 || activeTab === 6) && (
           <div className="text-center py-16 text-gray-400">
             <BarChart2 size={32} className="mx-auto mb-3 opacity-30" />
