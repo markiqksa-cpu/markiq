@@ -159,7 +159,7 @@ export default function ClientsPage() {
 
   // ===== إحصائيات =====
   const activeCount = clients.filter((c) => c.status === "active").length;
-  const totalBudget = clients.reduce((s, c) => s + (c.budget_monthly || 0), 0);
+  const totalBudget = clients.reduce((s, c) => s + (c.budgetMonthly || 0), 0);
   const rois = clients.filter((c) => (c.roi ?? 0) > 0).map((c) => c.roi ?? 0);
   const avgROI = rois.length > 0 ? rois.reduce((a, b) => a + b, 0) / rois.length : 0;
 
@@ -262,7 +262,7 @@ export default function ClientsPage() {
         {view === "grid" && (
           <div className="grid grid-cols-3 gap-4">
             {clients.map((client) => {
-              const budget = client.budget_monthly || 0;
+              const budget = client.budgetMonthly || 0;
               const spent = client.totalSpend || 0;
               const spentPct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
               const platforms: string[] = client.platforms || [];
@@ -376,7 +376,7 @@ export default function ClientsPage() {
                       </td>
                       <td className="py-3 px-3 text-gray-500">{client.sector}</td>
                       <td className="py-3 px-3 text-gray-700 font-medium">
-                        {(client.budget_monthly || 0).toLocaleString()} ر.س
+                        {(client.budgetMonthly || 0).toLocaleString()} ر.س
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex gap-1 items-center">
