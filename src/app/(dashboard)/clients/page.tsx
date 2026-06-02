@@ -315,7 +315,7 @@ export default function ClientsPage() {
                           <PlatformIcon key={p} platform={p} />
                         ))}
                         <div className="text-[10px] text-gray-400 mr-auto">
-                          منذ {new Date(client.created_at).toLocaleDateString("ar-SA", { month: "long", year: "numeric" })}
+                          منذ {new Date(client.createdAt).toLocaleDateString("ar-SA", { month: "long", year: "numeric" })}
                         </div>
                       </div>
                     </div>
