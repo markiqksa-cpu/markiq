@@ -320,7 +320,7 @@ function CampaignBuilderContent() {
   const canNext = () => {
     if (step === 1) return form.name && form.goal;
     if (step === 2) return form.platforms.length > 0 && form.budgetTotal > 0;
-    if (step === 3) return form.contentTypes.length > 0;
+    if (step === 3) return true;
     if (step === 4) return generatedContent.length > 0;
     if (step === 5) return form.startDate && form.endDate;
     return true;
@@ -479,6 +479,36 @@ function CampaignBuilderContent() {
             <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <FileText size={15} className="text-primary-500" /> نوع المحتوى المطلوب
             </h2>
+
+            {/* اقتراح تلقائي من الموقع */}
+            <div className="bg-primary-light border border-blue-200 rounded-xl p-3 mb-4">
+              <div className="text-[11px] font-medium text-primary-500 mb-2 flex items-center gap-1.5">
+                <Brain size={12} /> الموقع يقترح تلقائياً بناءً على منصاتك
+              </div>
+              <div className="space-y-1.5">
+                {form.platforms.map(pid => {
+                  const p = PLATFORMS.find(x => x.id === pid)!;
+                  const suggested =
+                    pid === "instagram" ? "ريلز + ستوري يومي" :
+                    pid === "snapchat" ? "ستوري يومي + فيديو قصير" :
+                    pid === "tiktok" ? "ريلز / تيك توك + فيديو قصير" :
+                    pid === "google" ? "نص إعلاني" :
+                    pid === "youtube" ? "فيديو قصير" :
+                    pid === "facebook" ? "صورة + كابشن + فيديو" :
+                    pid === "twitter" ? "نص إعلاني + صورة" :
+                    "صورة + كابشن";
+                  return (
+                    <div key={pid} className="flex items-center gap-2 text-[10.5px]">
+                      <PlatformSVG id={pid} active={true} />
+                      <span className="text-gray-600 font-medium">{p.label}:</span>
+                      <span className="text-primary-500">{suggested}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="text-[11px] text-gray-500 mb-2">يمكنك تخصيص أنواع إضافية (اختياري):</div>
             <div className="grid grid-cols-3 gap-3">
               {CONTENT_TYPES.map(ct => (
                 <button key={ct.id} onClick={() => toggleArray("contentTypes", ct.id)}
@@ -608,8 +638,19 @@ function CampaignBuilderContent() {
               </div>
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
-                <div className="text-[11px] font-medium text-yellow-700 mb-1">🕌 أوقات يُتجنب النشر فيها</div>
-                <div className="text-[10.5px] text-yellow-600">أوقات الصلاة: الفجر، الظهر، العصر، المغرب، العشاء</div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" defaultChecked
+                    className="w-4 h-4 rounded border-yellow-300 text-yellow-500 focus:ring-yellow-400"
+                    onChange={e => {
+                      const el = e.target.closest('.bg-yellow-50')?.querySelector('.prayer-text') as HTMLElement;
+                      if (el) el.style.opacity = e.target.checked ? '1' : '0.4';
+                    }}
+                  />
+                  <div className="text-[11px] font-medium text-yellow-700">🕌 تجنب أوقات الصلاة</div>
+                </label>
+                <div className="prayer-text text-[10.5px] text-yellow-600 mt-1 mr-6">
+                  الفجر، الظهر، العصر، المغرب، العشاء
+                </div>
               </div>
             </div>
           </Card>
