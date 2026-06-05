@@ -393,7 +393,10 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             </div>
             {campaigns.length > 0 && (
               <Card>
-                <CardHeader title="الحملات" icon={<Target size={14} />} action="عرض الكل" onAction={() => setActiveTab(2)} />
+                <div className="flex items-center justify-between mb-3">
+  <CardHeader title="الحملات" icon={<Target size={14} />} />
+  <button onClick={() => setActiveTab(2)} className="text-[11px] text-primary-500 hover:underline">عرض الكل</button>
+</div>
                 {campaigns.slice(0, 4).map((camp, i) => {
                   const campPlatforms = (camp.platforms as string[]) || [];
                   const budget = Number(camp.budget_total || 0);
