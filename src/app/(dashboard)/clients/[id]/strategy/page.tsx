@@ -8,9 +8,9 @@ import {
 } from "lucide-react";
 import TopNav from "@/components/layout/TopNav";
 import Breadcrumb from "@/components/layout/Breadcrumb";
-import { Button, Card, CardHeader, Badge } from "@/components/ui";
+import { Button, Card, CardHeader } from "@/components/ui";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
-// ===== TYPES =====
 interface Strategy {
   summary: string;
   kpis: { orders: number; roi: number; cpo: number; impressions: number };
@@ -24,45 +24,14 @@ interface StrategyPageProps {
   params: { id: string };
 }
 
-// ===== GENERATION STEPS =====
 const GEN_STEPS = [
-  { id: 1, label: "تحليل بيانات العميل", icon: <Users size={14} />, duration: 800 },
-  { id: 2, label: "دراسة السوق السعودي", icon: <Map size={14} />, duration: 1200 },
-  { id: 3, label: "تحليل المنافسين", icon: <Target size={14} />, duration: 1000 },
-  { id: 4, label: "توليد الاستراتيجية بـ Claude AI", icon: <Brain size={14} />, duration: 2000 },
-  { id: 5, label: "حساب مؤشرات الأداء (KPIs)", icon: <TrendingUp size={14} />, duration: 800 },
+  { id: 1, label: "تحليل بيانات العميل", icon: <Users size={14} />, duration: 600 },
+  { id: 2, label: "دراسة السوق السعودي", icon: <Map size={14} />, duration: 600 },
+  { id: 3, label: "تحليل المنافسين", icon: <Target size={14} />, duration: 600 },
+  { id: 4, label: "توليد الاستراتيجية بـ Claude AI", icon: <Brain size={14} />, duration: 8000 },
+  { id: 5, label: "حساب مؤشرات الأداء (KPIs)", icon: <TrendingUp size={14} />, duration: 600 },
   { id: 6, label: "إعداد خطة التنفيذ", icon: <CheckCircle size={14} />, duration: 600 },
 ];
-
-// ===== MOCK STRATEGY =====
-const MOCK_STRATEGY: Strategy = {
-  summary: "زيادة الطلبات عبر تطبيقات التوصيل بنسبة 40% خلال 3 أشهر، من خلال بناء حضور رقمي قوي على انستقرام وسناب شات وقوقل، مع استهداف دقيق لسكان أحياء النزهة والعليا والياسمين في الرياض. التركيز على المحتوى المرئي الشهي مع عروض توصيل مجانية لاستقطاب العملاء الجدد.",
-  kpis: { orders: 40, roi: 3.5, cpo: 10, impressions: 500000 },
-  peakTimes: {
-    "الجمعة": ["11:00 ص", "2:00 م", "9:00 م"],
-    "السبت": ["12:00 م", "7:00 م", "10:00 م"],
-    "الأحد - الخميس": ["12:30 م", "8:00 م"],
-  },
-  phases: [
-    { title: "إعداد الحسابات والهوية", description: "ربط المنصات + إعداد البروفايلات + رفع الهوية البصرية", duration: "الأسبوع 1-2" },
-    { title: "إطلاق الحملات الأساسية", description: "انستقرام + سناب شات + قوقل بميزانية تجريبية لقياس الأداء", duration: "الأسبوع 3-6" },
-    { title: "التحسين والتوسع", description: "مضاعفة ما ينجح + تيك توك + تحسين الاستهداف بناءً على البيانات", duration: "الشهر 2" },
-    { title: "قياس النتائج والتقرير", description: "مراجعة شاملة للـ KPIs + خطة الربع القادم + تقرير للعميل", duration: "الشهر 3" },
-  ],
-  recommendations: [
-    { text: "ابدأ بقوقل لأنه يجلب عملاء لديهم نية شراء واضحة — تخصيص 40% من الميزانية", priority: "urgent" },
-    { text: "انستقرام للمحتوى المرئي الشهي — ريلز كل 3 أيام لبناء جمهور عضوي", priority: "urgent" },
-    { text: "سناب شات لاستهداف الشباب 18-30 — ستوري يومي مع عروض محدودة الوقت", priority: "medium" },
-    { text: "احرص على الرد على كل تعليق وسؤال خلال ساعة — يرفع ترتيب الخوارزمية", priority: "medium" },
-    { text: "تيك توك في الشهر الثاني بعد اختبار المحتوى على انستقرام", priority: "planning" },
-    { text: "اجمع تقييمات هنقرستيشن وجاهز بعد كل طلب — الهدف 4.8+ نجوم", priority: "planning" },
-  ],
-  audienceAnalysis: {
-    segments: ["موظفون 25-34", "عائلات", "طلاب جامعيون", "مديرون تنفيذيون"],
-    areas: ["النزهة", "العليا", "الياسمين", "الملقا", "التخصصي"],
-    interests: ["الطعام الإيطالي", "التوصيل السريع", "العروض والخصومات", "الأكل الصحي"],
-  },
-};
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   urgent: { label: "عاجل", color: "text-red-500", bg: "bg-red-50" },
@@ -70,66 +39,196 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string; bg: string
   planning: { label: "تخطيط", color: "text-green-600", bg: "bg-green-50" },
 };
 
-// ===== COMPONENT =====
 export default function StrategyGenerationPage({ params }: StrategyPageProps) {
   const router = useRouter();
+  const supabase = createSupabaseClient();
+
+  const [clientName, setClientName] = useState("العميل");
+  const [clientData, setClientData] = useState<Record<string, unknown> | null>(null);
   const [generating, setGenerating] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [approved, setApproved] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Simulate generation
+  // جلب بيانات العميل أولاً
   useEffect(() => {
-    async function runGeneration() {
-      for (let i = 0; i < GEN_STEPS.length; i++) {
-        setCurrentStep(i);
-        await new Promise((r) => setTimeout(r, GEN_STEPS[i].duration));
-        setCompletedSteps((prev) => [...prev, i]);
+    async function fetchClientAndGenerate() {
+      try {
+        const { data, error: err } = await supabase
+          .from("clients")
+          .select("*")
+          .eq("id", params.id)
+          .single();
+
+        if (err || !data) throw new Error("لم يتم العثور على العميل");
+
+        setClientData(data);
+        setClientName(String(data.name || "العميل"));
+
+        // ابدأ التوليد بعد جلب البيانات
+        await generateStrategy(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "حدث خطأ");
+        setGenerating(false);
       }
-      await new Promise((r) => setTimeout(r, 400));
-      setStrategy(MOCK_STRATEGY);
-      setGenerating(false);
     }
-    runGeneration();
-  }, []);
+    fetchClientAndGenerate();
+  }, [params.id]);
 
-  async function handleApprove() {
-    setApproving(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setApproving(false);
-    setApproved(true);
-  }
-
-  async function handleRegenerate() {
+  async function generateStrategy(data: Record<string, unknown>) {
     setGenerating(true);
     setCurrentStep(0);
     setCompletedSteps([]);
     setStrategy(null);
     setApproved(false);
+    setError(null);
 
-    for (let i = 0; i < GEN_STEPS.length; i++) {
+    // خطوات 1-3 (تمهيدية)
+    for (let i = 0; i < 3; i++) {
       setCurrentStep(i);
-      await new Promise((r) => setTimeout(r, GEN_STEPS[i].duration * 0.7));
-      setCompletedSteps((prev) => [...prev, i]);
+      await new Promise(r => setTimeout(r, GEN_STEPS[i].duration));
+      setCompletedSteps(prev => [...prev, i]);
     }
-    await new Promise((r) => setTimeout(r, 300));
-    setStrategy(MOCK_STRATEGY);
-    setGenerating(false);
+
+    // خطوة 4 — Claude API الحقيقي
+    setCurrentStep(3);
+
+    try {
+      const prompt = `أنت خبير تسويق رقمي متخصص في السوق السعودي. بناءً على بيانات العميل التالية، ولّد استراتيجية تسويقية شاملة.
+
+بيانات العميل:
+- الاسم: ${data.name}
+- القطاع: ${data.sector}
+- المدينة: ${data.city} - حي ${data.neighborhood}
+- الميزانية الشهرية: ${data.budget_monthly} ريال
+- المنصات: ${(data.platforms as string[] || []).join(', ')}
+- الأهداف: ${(data.goals as string[] || []).join(', ')}
+- الفئة العمرية: ${data.target_age}
+- الجنس المستهدف: ${data.target_gender}
+- الأحياء المستهدفة: ${(data.target_areas as string[] || []).join(', ')}
+- لغة المحتوى: ${data.content_language}
+- المنافسون: ${(data.competitors as string[] || []).join(', ')}
+- ملاحظات: ${data.description || 'لا يوجد'}
+
+أجب بـ JSON فقط بالشكل التالي (بدون أي نص آخر):
+{
+  "summary": "ملخص الاستراتيجية بالعربي (3-4 جمل)",
+  "kpis": {
+    "orders": 40,
+    "roi": 3.5,
+    "cpo": 15,
+    "impressions": 300000
+  },
+  "peakTimes": {
+    "الجمعة": ["11:00 ص", "2:00 م", "9:00 م"],
+    "السبت": ["12:00 م", "7:00 م"]
+  },
+  "phases": [
+    {"title": "...", "description": "...", "duration": "الأسبوع 1-2"},
+    {"title": "...", "description": "...", "duration": "الأسبوع 3-6"},
+    {"title": "...", "description": "...", "duration": "الشهر 2"},
+    {"title": "...", "description": "...", "duration": "الشهر 3"}
+  ],
+  "recommendations": [
+    {"text": "...", "priority": "urgent"},
+    {"text": "...", "priority": "urgent"},
+    {"text": "...", "priority": "medium"},
+    {"text": "...", "priority": "medium"},
+    {"text": "...", "priority": "planning"}
+  ],
+  "audienceAnalysis": {
+    "segments": ["..."],
+    "areas": ["..."],
+    "interests": ["..."]
+  }
+}`;
+
+      const response = await fetch("/api/ai/strategy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientData: { name: data.name, sector: data.sector, city: data.city, neighborhood: data.neighborhood, targetAreas: data.target_areas, targetAge: data.target_age, targetGender: data.target_gender, interests: data.interests, platforms: data.platforms, goals: data.goals, budgetMonthly: data.budget_monthly, description: data.description, seoKeywords: data.seo_keywords, competitors: data.competitors } }),
+      });
+
+      if (!response.ok) throw new Error("فشل استدعاء Claude API");
+
+      const result = await response.json();
+      let parsedStrategy: Strategy;
+
+      try {
+        if (result.strategy) {
+          parsedStrategy = result.strategy;
+        } else {
+          const text = result.content || "";
+          const clean = text.replace(/```json|```/g, "").trim();
+          parsedStrategy = JSON.parse(clean);
+        }
+      } catch {
+        throw new Error("فشل تحليل استجابة الذكاء الاصطناعي");
+      }
+
+      setCompletedSteps(prev => [...prev, 3]);
+
+      // خطوات 5-6
+      for (let i = 4; i < GEN_STEPS.length; i++) {
+        setCurrentStep(i);
+        await new Promise(r => setTimeout(r, GEN_STEPS[i].duration));
+        setCompletedSteps(prev => [...prev, i]);
+      }
+
+      await new Promise(r => setTimeout(r, 300));
+      setStrategy(parsedStrategy);
+      setGenerating(false);
+
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "فشل توليد الاستراتيجية");
+      setGenerating(false);
+    }
+  }
+
+  // حفظ الاستراتيجية في Supabase
+  async function handleApprove() {
+    if (!strategy) return;
+    setApproving(true);
+    try {
+      const { error: err } = await supabase
+        .from("strategies")
+        .upsert({
+          client_id: params.id,
+          summary: strategy.summary,
+          kpi_orders_target: strategy.kpis.orders,
+          kpi_roi_target: strategy.kpis.roi,
+          kpi_cpo_target: strategy.kpis.cpo,
+          kpi_impressions_target: strategy.kpis.impressions,
+          peak_times: strategy.peakTimes,
+          phases: strategy.phases,
+          ai_recommendations: strategy.recommendations,
+          version: 1,
+        }, { onConflict: "client_id" });
+
+      if (err) throw err;
+      setApproved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "فشل حفظ الاستراتيجية");
+    } finally {
+      setApproving(false);
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       <TopNav
-        currentClient={{ id: params.id, name: "معك رونة" }}
-        alertCount={3}
+        currentClient={{ id: params.id, name: clientName }}
+        alertCount={0}
         user={{ name: "عمر", email: "omar@markiq.sa", role: "admin" }}
       />
       <Breadcrumb items={[
         { label: "لوحة التحكم", href: "/dashboard" },
         { label: "العملاء", href: "/clients" },
-        { label: "معك رونة", href: `/clients/${params.id}` },
+        { label: clientName, href: `/clients/${params.id}` },
         { label: "توليد الاستراتيجية" },
       ]} />
 
@@ -142,33 +241,36 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               <Brain size={18} className="text-primary-500" />
               توليد الاستراتيجية التسويقية
             </h1>
-            <p className="text-xs text-gray-500 mt-1">Claude AI يحلل بيانات معك رونة ويبني خطة تسويقية متكاملة</p>
+            <p className="text-xs text-gray-500 mt-1">Claude AI يحلل بيانات {clientName} ويبني خطة تسويقية متكاملة</p>
           </div>
           {!generating && strategy && (
             <div className="flex gap-2">
-              <Button variant="outline" icon={<RefreshCw size={11} />} onClick={handleRegenerate}>
+              <Button variant="outline" icon={<RefreshCw size={11} />} onClick={() => clientData && generateStrategy(clientData)}>
                 إعادة التوليد
               </Button>
               {!approved ? (
                 <Button
                   icon={approving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
                   onClick={handleApprove}
-                  loading={approving}
                 >
                   {approving ? "جارٍ الاعتماد..." : "اعتماد الاستراتيجية"}
                 </Button>
               ) : (
-                <Button
-                  icon={<ChevronRight size={11} className="rotate-180" />}
-                  onClick={() => router.push(`/clients/${params.id}`)}
-                  variant="success"
-                >
+                <Button icon={<ChevronRight size={11} className="rotate-180" />} onClick={() => router.push(`/clients/${params.id}`)}>
                   انتقل للملف
                 </Button>
               )}
             </div>
           )}
         </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
+            {error}
+            <button onClick={() => clientData && generateStrategy(clientData)} className="mr-3 text-red-700 underline text-xs">إعادة المحاولة</button>
+          </div>
+        )}
 
         {/* Generation Progress */}
         {generating && (
@@ -182,7 +284,6 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
                 <div className="text-[10px] text-gray-500">يُرجى الانتظار، يتم توليد الاستراتيجية</div>
               </div>
             </div>
-
             <div className="space-y-3">
               {GEN_STEPS.map((step, i) => {
                 const isDone = completedSteps.includes(i);
@@ -194,17 +295,11 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
                     "bg-gray-50 border-gray-100"
                   }`}>
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      isDone ? "bg-green-500" :
-                      isActive ? "bg-primary-500" :
-                      "bg-gray-200"
+                      isDone ? "bg-green-500" : isActive ? "bg-primary-500" : "bg-gray-200"
                     }`}>
-                      {isDone ? (
-                        <CheckCircle size={14} className="text-white" />
-                      ) : isActive ? (
-                        <Loader2 size={14} className="text-white animate-spin" />
-                      ) : (
-                        <div className="text-[10px] text-gray-400 font-bold">{step.id}</div>
-                      )}
+                      {isDone ? <CheckCircle size={14} className="text-white" /> :
+                       isActive ? <Loader2 size={14} className="text-white animate-spin" /> :
+                       <div className="text-[10px] text-gray-400 font-bold">{step.id}</div>}
                     </div>
                     <div className={`text-xs ${isDone ? "text-green-700" : isActive ? "text-primary-500 font-medium" : "text-gray-400"}`}>
                       {step.label}
@@ -215,12 +310,9 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
                 );
               })}
             </div>
-
             <div className="mt-4 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="h-full bg-primary-500 rounded-full transition-all duration-500"
-                style={{ width: `${(completedSteps.length / GEN_STEPS.length) * 100}%` }}
-              />
+              <div className="h-full bg-primary-500 rounded-full transition-all duration-500"
+                style={{ width: `${(completedSteps.length / GEN_STEPS.length) * 100}%` }} />
             </div>
             <div className="text-center text-[10px] text-gray-400 mt-1.5">
               {completedSteps.length} / {GEN_STEPS.length} خطوات مكتملة
@@ -231,20 +323,11 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
         {/* Strategy Result */}
         {!generating && strategy && (
           <>
-            {/* Success Banner */}
-            <div className={`flex items-center gap-3 p-3 rounded-xl border ${
-              approved
-                ? "bg-green-50 border-green-200"
-                : "bg-primary-light border-blue-200"
-            }`}>
-              {approved ? (
-                <CheckCircle size={18} className="text-green-500 flex-shrink-0" />
-              ) : (
-                <Sparkles size={18} className="text-primary-500 flex-shrink-0" />
-              )}
+            <div className={`flex items-center gap-3 p-3 rounded-xl border ${approved ? "bg-green-50 border-green-200" : "bg-primary-light border-blue-200"}`}>
+              {approved ? <CheckCircle size={18} className="text-green-500 flex-shrink-0" /> : <Sparkles size={18} className="text-primary-500 flex-shrink-0" />}
               <div>
                 <div className={`text-sm font-semibold ${approved ? "text-green-700" : "text-primary-500"}`}>
-                  {approved ? "✓ الاستراتيجية معتمدة رسمياً" : "✓ تم توليد الاستراتيجية بنجاح"}
+                  {approved ? "✓ الاستراتيجية معتمدة ومحفوظة" : "✓ تم توليد الاستراتيجية بنجاح"}
                 </div>
                 <div className="text-[10px] text-gray-500">
                   {approved ? "يمكنك الآن بناء الحملات بناءً على هذه الاستراتيجية" : "راجع الاستراتيجية وأعتمدها للبدء بالحملات"}
@@ -252,7 +335,6 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               </div>
             </div>
 
-            {/* Summary */}
             <div className="bg-primary-light border border-blue-200 rounded-xl p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-primary-500 mb-2">
                 <Brain size={15} /> ملخص الاستراتيجية
@@ -260,7 +342,6 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               <p className="text-xs text-blue-700 leading-relaxed">{strategy.summary}</p>
             </div>
 
-            {/* KPIs */}
             <Card>
               <CardHeader title="مؤشرات الأداء المستهدفة (KPIs)" icon={<Target size={14} />} />
               <div className="grid grid-cols-4 gap-3">
@@ -280,7 +361,6 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               </div>
             </Card>
 
-            {/* Audience + Peak Times */}
             <div className="grid grid-cols-2 gap-4">
               <Card>
                 <CardHeader title="تحليل الجمهور" icon={<Users size={14} />} />
@@ -293,9 +373,7 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
                     <div className="text-[10px] text-gray-400 mb-1.5">{group.label}</div>
                     <div className="flex flex-wrap gap-1.5">
                       {group.items.map((item, i) => (
-                        <span key={i} className={`text-[10px] px-2 py-0.5 rounded-full border ${group.color}`}>
-                          {item}
-                        </span>
+                        <span key={i} className={`text-[10px] px-2 py-0.5 rounded-full border ${group.color}`}>{item}</span>
                       ))}
                     </div>
                   </div>
@@ -309,9 +387,7 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
                     <span className="text-xs font-medium text-gray-700 w-20 flex-shrink-0 mt-0.5">{day}</span>
                     <div className="flex flex-wrap gap-1">
                       {times.map((t, ti) => (
-                        <span key={ti} className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full">
-                          {t}
-                        </span>
+                        <span key={ti} className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full">{t}</span>
                       ))}
                     </div>
                   </div>
@@ -319,42 +395,31 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               </Card>
             </div>
 
-            {/* Phases */}
             <Card>
               <CardHeader title="مراحل تنفيذ الخطة" icon={<Map size={14} />} />
               <div className="grid grid-cols-4 gap-3">
                 {strategy.phases.map((phase, i) => (
-                  <div key={i} className="relative">
-                    {i < strategy.phases.length - 1 && (
-                      <div className="absolute top-4 left-0 w-full h-px bg-gray-200 z-0" style={{ left: "50%" }} />
-                    )}
-                    <div className="relative z-10 flex flex-col items-center text-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-2 flex-shrink-0 ${
-                        i === 0 ? "bg-green-500 text-white" :
-                        i === 1 ? "bg-primary-500 text-white" :
-                        "bg-gray-100 text-gray-400 border border-gray-200"
-                      }`}>
-                        {i === 0 ? "✓" : i + 1}
-                      </div>
-                      <div className="text-xs font-medium text-gray-800 mb-1">{phase.title}</div>
-                      <div className="text-[10px] text-gray-500 mb-1.5">{phase.description}</div>
-                      <span className="text-[9px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                        {phase.duration}
-                      </span>
+                  <div key={i} className="flex flex-col items-center text-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-2 ${
+                      i === 0 ? "bg-green-500 text-white" : i === 1 ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-400 border border-gray-200"
+                    }`}>
+                      {i === 0 ? "✓" : i + 1}
                     </div>
+                    <div className="text-xs font-medium text-gray-800 mb-1">{phase.title}</div>
+                    <div className="text-[10px] text-gray-500 mb-1.5">{phase.description}</div>
+                    <span className="text-[9px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{phase.duration}</span>
                   </div>
                 ))}
               </div>
             </Card>
 
-            {/* AI Recommendations */}
             <Card>
               <CardHeader title="توصيات الذكاء الاصطناعي" icon={<Brain size={14} />} />
               <div className="space-y-2">
                 {strategy.recommendations.map((rec, i) => {
                   const config = PRIORITY_CONFIG[rec.priority] || PRIORITY_CONFIG.planning;
                   return (
-                    <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                    <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-xl">
                       <div className="w-7 h-7 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
                         <Brain size={13} className="text-primary-500" />
                       </div>
@@ -370,29 +435,18 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               </div>
             </Card>
 
-            {/* Bottom Actions */}
             <div className="flex items-center justify-between py-2">
-              <Button variant="outline" onClick={() => router.back()}>
-                العودة
-              </Button>
+              <Button variant="outline" onClick={() => router.back()}>العودة</Button>
               <div className="flex gap-2">
-                <Button variant="outline" icon={<RefreshCw size={11} />} onClick={handleRegenerate}>
+                <Button variant="outline" icon={<RefreshCw size={11} />} onClick={() => clientData && generateStrategy(clientData)}>
                   إعادة التوليد
                 </Button>
                 {!approved ? (
-                  <Button
-                    icon={approving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
-                    onClick={handleApprove}
-                    loading={approving}
-                  >
+                  <Button icon={approving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />} onClick={handleApprove}>
                     {approving ? "جارٍ الاعتماد..." : "اعتماد الاستراتيجية"}
                   </Button>
                 ) : (
-                  <Button
-                    variant="success"
-                    icon={<ChevronRight size={11} className="rotate-180" />}
-                    onClick={() => router.push(`/clients/${params.id}`)}
-                  >
+                  <Button icon={<ChevronRight size={11} className="rotate-180" />} onClick={() => router.push(`/clients/${params.id}`)}>
                     إنشاء أول حملة
                   </Button>
                 )}
@@ -403,11 +457,4 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
       </div>
     </div>
   );
-}
-
-// Success variant for button
-declare module "@/components/ui" {
-  interface ButtonVariants {
-    success: string;
-  }
 }
