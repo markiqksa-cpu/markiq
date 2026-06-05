@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   MapPin, Smartphone, Calendar, Plus, FileText, Edit,
-  Target, Brain, TrendingUp,
-  BarChart2, FileCheck, ChevronRight, Loader2
+  Target, Brain, TrendingUp, BarChart2, FileCheck,
+  ChevronRight, Loader2, Check, X, ChevronDown
 } from "lucide-react";
 import TopNav from "@/components/layout/TopNav";
 import Breadcrumb from "@/components/layout/Breadcrumb";
@@ -40,11 +40,134 @@ const LANGUAGE_LABELS: Record<string, string> = {
 
 const TABS = ["نظرة عامة", "الاستراتيجية", "الحملات", "الأداء", "الميزانية", "المحتوى", "العقد والفواتير"];
 
+const STATUS_OPTIONS = [
+  { value: "active", label: "نشط", color: "text-green-600 bg-green-50 border-green-200" },
+  { value: "pending", label: "قيد المراجعة", color: "text-yellow-700 bg-yellow-50 border-yellow-200" },
+  { value: "inactive", label: "غير نشط", color: "text-gray-500 bg-gray-100 border-gray-200" },
+];
+
+// ===== EDIT MODAL =====
+function EditModal({
+  client,
+  onSave,
+  onClose,
+}: {
+  client: Record<string, unknown>;
+  onSave: (data: Record<string, unknown>) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: String(client.name || ""),
+    city: String(client.city || ""),
+    neighborhood: String(client.neighborhood || ""),
+    budget_monthly: Number(client.budget_monthly || 0),
+    website_url: String(client.website_url || ""),
+    instagram_url: String(client.instagram_url || ""),
+    description: String(client.description || ""),
+  });
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    await onSave(form);
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" dir="rtl">
+      <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <div className="text-sm font-semibold text-gray-800">تعديل بيانات العميل</div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+        </div>
+        <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+          <div>
+            <label className="block text-[11px] text-gray-500 mb-1">اسم النشاط</label>
+            <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">المدينة</label>
+              <input type="text" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500" />
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">الحي</label>
+              <input type="text" value={form.neighborhood} onChange={e => setForm(f => ({ ...f, neighborhood: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[11px] text-gray-500 mb-1">الميزانية الشهرية (ر.س)</label>
+            <input type="number" value={form.budget_monthly} onChange={e => setForm(f => ({ ...f, budget_monthly: Number(e.target.value) }))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500" />
+          </div>
+          <div>
+            <label className="block text-[11px] text-gray-500 mb-1">الموقع الإلكتروني</label>
+            <input type="url" value={form.website_url} onChange={e => setForm(f => ({ ...f, website_url: e.target.value }))}
+              dir="ltr" placeholder="https://"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500" />
+          </div>
+          <div>
+            <label className="block text-[11px] text-gray-500 mb-1">انستقرام</label>
+            <input type="text" value={form.instagram_url} onChange={e => setForm(f => ({ ...f, instagram_url: e.target.value }))}
+              dir="ltr" placeholder="@username"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500" />
+          </div>
+          <div>
+            <label className="block text-[11px] text-gray-500 mb-1">ملاحظات</label>
+            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              rows={3} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 resize-none" />
+          </div>
+        </div>
+        <div className="flex gap-2 p-4 border-t border-gray-100">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-xs text-gray-600 hover:bg-gray-50">إلغاء</button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-xl text-xs font-medium hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center gap-1.5">
+            {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+            {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== STATUS DROPDOWN =====
+function StatusDropdown({ status, onChange }: { status: string; onChange: (s: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const current = STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[1];
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border cursor-pointer ${current.color}`}>
+        {current.label}
+        <ChevronDown size={10} />
+      </button>
+      {open && (
+        <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden min-w-[130px]">
+          {STATUS_OPTIONS.map(opt => (
+            <button key={opt.value} onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={`w-full text-right px-3 py-2 text-[11px] hover:bg-gray-50 flex items-center gap-2 ${status === opt.value ? "font-semibold" : ""}`}>
+              {status === opt.value && <Check size={10} className="text-primary-500" />}
+              <span className={`px-2 py-0.5 rounded-full border text-[10px] ${opt.color}`}>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== MAIN COMPONENT =====
 export default function ClientProfilePage({ params }: ClientProfileProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [client, setClient] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEdit, setShowEdit] = useState(false);
 
   const supabase = createSupabaseClient();
 
@@ -67,6 +190,28 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
     }
     fetchClient();
   }, [params.id]);
+
+  // ===== تغيير الحالة =====
+  async function handleStatusChange(newStatus: string) {
+    if (!client) return;
+    const { error: err } = await supabase
+      .from("clients")
+      .update({ status: newStatus })
+      .eq("id", params.id);
+    if (!err) setClient(prev => prev ? { ...prev, status: newStatus } : prev);
+  }
+
+  // ===== حفظ التعديلات =====
+  async function handleSaveEdit(data: Record<string, unknown>) {
+    const { error: err } = await supabase
+      .from("clients")
+      .update(data)
+      .eq("id", params.id);
+    if (!err) {
+      setClient(prev => prev ? { ...prev, ...data } : prev);
+      setShowEdit(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -114,6 +259,10 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
+      {showEdit && (
+        <EditModal client={client} onSave={handleSaveEdit} onClose={() => setShowEdit(false)} />
+      )}
+
       <TopNav currentClient={{ id: params.id, name }} alertCount={3} user={{ name: "عمر", email: "omar@markiq.sa", role: "admin" }} />
       <Breadcrumb items={[
         { label: "لوحة التحكم", href: "/dashboard" },
@@ -130,7 +279,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h1 className="text-base font-semibold text-gray-900">{name}</h1>
-              <StatusBadge status={status} />
+              <StatusDropdown status={status} onChange={handleStatusChange} />
               <Badge variant="blue">{sector}</Badge>
             </div>
             <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
@@ -157,7 +306,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
           </div>
           <div className="flex items-start gap-2 flex-shrink-0">
             <Button variant="outline" icon={<FileText size={11} />}>تقرير شهري</Button>
-            <Button variant="outline" icon={<Edit size={11} />}>تعديل البيانات</Button>
+            <Button variant="outline" icon={<Edit size={11} />} onClick={() => setShowEdit(true)}>تعديل البيانات</Button>
             <Link href={`/campaigns/new?client=${params.id}`}>
               <Button icon={<Plus size={11} />}>حملة جديدة</Button>
             </Link>
@@ -192,7 +341,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Card>
-                <CardHeader title="بيانات العميل" icon={<FileCheck size={14} />} action="تعديل" />
+                <CardHeader title="بيانات العميل" icon={<FileCheck size={14} />} action="تعديل" onAction={() => setShowEdit(true)} />
                 {[
                   ["القطاع", sector],
                   ["موقع النشاط", `${city} — ${neighborhood}`],
@@ -241,7 +390,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             </div>
             {campaigns.length > 0 && (
               <Card>
-                <CardHeader title="الحملات" icon={<Target size={14} />} action="عرض الكل" />
+                <CardHeader title="الحملات" icon={<Target size={14} />} action="عرض الكل" onAction={() => setActiveTab(2)} />
                 {campaigns.slice(0, 4).map((camp, i) => {
                   const campPlatforms = (camp.platforms as string[]) || [];
                   const budget = Number(camp.budget_total || 0);
