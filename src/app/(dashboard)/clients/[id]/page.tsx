@@ -165,6 +165,7 @@ function StatusDropdown({ status, onChange }: { status: string; onChange: (s: st
 export default function ClientProfilePage({ params }: ClientProfileProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [client, setClient] = useState<Record<string, unknown> | null>(null);
+  const [strategy, setStrategy] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEdit, setShowEdit] = useState(false);
@@ -175,13 +176,13 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
     async function fetchClient() {
       setLoading(true);
       try {
-        const { data, error: err } = await supabase
-          .from("clients")
-          .select(`*, campaigns(id, name, status, budget_total, spend, platforms)`)
-          .eq("id", params.id)
-          .single();
-        if (err) throw err;
-        setClient(data);
+        const [clientRes, strategyRes] = await Promise.all([
+          supabase.from("clients").select(`*, campaigns(id, name, status, budget_total, spend, platforms)`).eq("id", params.id).single(),
+          supabase.from("strategies").select("*").eq("client_id", params.id).single(),
+        ]);
+        if (clientRes.error) throw clientRes.error;
+        setClient(clientRes.data);
+        if (!strategyRes.error) setStrategy(strategyRes.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "حدث خطأ");
       } finally {
@@ -341,10 +342,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Card>
-                <div className="flex items-center justify-between mb-3">
-  <CardHeader title="بيانات العميل" icon={<FileCheck size={14} />} />
-  <button onClick={() => setShowEdit(true)} className="text-[11px] text-primary-500 hover:underline">تعديل</button>
-</div>
+                <CardHeader title="بيانات العميل" icon={<FileCheck size={14} />} action="تعديل" onAction={() => setShowEdit(true)} />
                 {[
                   ["القطاع", sector],
                   ["موقع النشاط", `${city} — ${neighborhood}`],
@@ -393,10 +391,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             </div>
             {campaigns.length > 0 && (
               <Card>
-                <div className="flex items-center justify-between mb-3">
-  <CardHeader title="الحملات" icon={<Target size={14} />} />
-  <button onClick={() => setActiveTab(2)} className="text-[11px] text-primary-500 hover:underline">عرض الكل</button>
-</div>
+                <CardHeader title="الحملات" icon={<Target size={14} />} action="عرض الكل" onAction={() => setActiveTab(2)} />
                 {campaigns.slice(0, 4).map((camp, i) => {
                   const campPlatforms = (camp.platforms as string[]) || [];
                   const budget = Number(camp.budget_total || 0);
@@ -421,14 +416,96 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
 
         {/* TAB 1: الاستراتيجية */}
         {activeTab === 1 && (
-          <div className="text-center py-16">
-            <Brain size={32} className="mx-auto mb-3 text-gray-300" />
-            <div className="text-sm text-gray-500 mb-2">لم يتم توليد الاستراتيجية بعد</div>
-            <div className="text-xs text-gray-400 mb-4">اضغط لتوليد استراتيجية تسويقية كاملة بالذكاء الاصطناعي</div>
-            <Link href={`/clients/${params.id}/strategy`}>
-              <Button icon={<Brain size={12} />}>توليد الاستراتيجية</Button>
-            </Link>
-          </div>
+          strategy ? (
+            <>
+              <div className="bg-primary-light border border-blue-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-primary-500">
+                    <Brain size={15} /> ملخص الاستراتيجية
+                  </div>
+                  <Link href={`/clients/${params.id}/strategy`}>
+                    <button className="text-[11px] text-primary-500 hover:underline">إعادة التوليد</button>
+                  </Link>
+                </div>
+                <p className="text-xs text-blue-700 leading-relaxed">{String(strategy.summary || "")}</p>
+              </div>
+
+              {/* KPIs */}
+              <Card>
+                <CardHeader title="مؤشرات الأداء المستهدفة (KPIs)" icon={<Target size={14} />} />
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { val: `${strategy.kpi_orders_target}%`, label: "زيادة الطلبات", icon: "📦" },
+                    { val: `${strategy.kpi_roi_target}x`, label: "عائد الاستثمار", icon: "📈" },
+                    { val: `${strategy.kpi_cpo_target} ر.س`, label: "تكلفة الطلب", icon: "💰" },
+                    { val: `${((Number(strategy.kpi_impressions_target) || 0) / 1000).toFixed(0)}K`, label: "ظهور شهري", icon: "👁️" },
+                  ].map((kpi, i) => (
+                    <div key={i} className="bg-gray-50 rounded-xl p-3 text-center">
+                      <div className="text-2xl mb-1">{kpi.icon}</div>
+                      <div className="text-xl font-bold text-primary-500">{kpi.val}</div>
+                      <div className="text-[10px] text-gray-500 mt-1">{kpi.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Phases */}
+              {Array.isArray(strategy.phases) && (strategy.phases as Record<string, unknown>[]).length > 0 && (
+                <Card>
+                  <CardHeader title="مراحل تنفيذ الخطة" icon={<TrendingUp size={14} />} />
+                  <div className="grid grid-cols-4 gap-3">
+                    {(strategy.phases as Record<string, unknown>[]).map((phase, i) => (
+                      <div key={i} className="flex flex-col items-center text-center">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-2 ${i === 0 ? "bg-green-500 text-white" : i === 1 ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-400 border border-gray-200"}`}>
+                          {i === 0 ? "✓" : i + 1}
+                        </div>
+                        <div className="text-xs font-medium text-gray-800 mb-1">{String(phase.title || "")}</div>
+                        <div className="text-[10px] text-gray-500 mb-1">{String(phase.description || "")}</div>
+                        <span className="text-[9px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{String(phase.duration || "")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* AI Recommendations */}
+              {Array.isArray(strategy.ai_recommendations) && (
+                <Card>
+                  <CardHeader title="توصيات الذكاء الاصطناعي" icon={<Brain size={14} />} />
+                  <div className="space-y-2">
+                    {(strategy.ai_recommendations as Record<string, unknown>[]).map((rec, i) => {
+                      const priority = String(rec.priority || "planning");
+                      const config = priority === "urgent" ? { label: "عاجل", color: "text-red-500", bg: "bg-red-50" } :
+                                     priority === "medium" ? { label: "متوسط", color: "text-yellow-700", bg: "bg-yellow-50" } :
+                                     { label: "تخطيط", color: "text-green-600", bg: "bg-green-50" };
+                      return (
+                        <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-xl">
+                          <div className="w-7 h-7 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Brain size={13} className="text-primary-500" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-[11.5px] text-gray-700 leading-relaxed">{String(rec.text || "")}</div>
+                          </div>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full h-fit flex-shrink-0 ${config.bg} ${config.color} font-medium`}>
+                            {config.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-16">
+              <Brain size={32} className="mx-auto mb-3 text-gray-300" />
+              <div className="text-sm text-gray-500 mb-2">لم يتم توليد الاستراتيجية بعد</div>
+              <div className="text-xs text-gray-400 mb-4">اضغط لتوليد استراتيجية تسويقية كاملة بالذكاء الاصطناعي</div>
+              <Link href={`/clients/${params.id}/strategy`}>
+                <Button icon={<Brain size={12} />}>توليد الاستراتيجية</Button>
+              </Link>
+            </div>
+          )
         )}
 
         {/* TAB 2: الحملات */}
