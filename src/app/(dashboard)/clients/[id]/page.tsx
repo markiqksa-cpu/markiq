@@ -342,10 +342,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Card>
-                <div className="flex items-center justify-between mb-3">
-  <CardHeader title="بيانات العميل" icon={<FileCheck size={14} />} />
-  <button onClick={() => setShowEdit(true)} className="text-[11px] text-primary-500 hover:underline">تعديل</button>
-</div>
+                <CardHeader title="بيانات العميل" icon={<FileCheck size={14} />} action="تعديل" onAction={() => setShowEdit(true)} />
                 {[
                   ["القطاع", sector],
                   ["موقع النشاط", `${city} — ${neighborhood}`],
@@ -394,10 +391,7 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             </div>
             {campaigns.length > 0 && (
               <Card>
-                <div className="flex items-center justify-between mb-3">
-  <CardHeader title="الحملات" icon={<Target size={14} />} />
-  <button onClick={() => setActiveTab(2)} className="text-[11px] text-primary-500 hover:underline">عرض الكل</button>
-</div>
+                <CardHeader title="الحملات" icon={<Target size={14} />} action="عرض الكل" onAction={() => setActiveTab(2)} />
                 {campaigns.slice(0, 4).map((camp, i) => {
                   const campPlatforms = (camp.platforms as string[]) || [];
                   const budget = Number(camp.budget_total || 0);
@@ -553,20 +547,273 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
           </Card>
         )}
 
-        {/* TABs 3-6 */}
-        {(activeTab === 3 || activeTab === 4 || activeTab === 5 || activeTab === 6) && (
-          <div className="text-center py-16 text-gray-400">
-            <BarChart2 size={32} className="mx-auto mb-3 opacity-30" />
-            <div className="text-sm mb-1">
-              {activeTab === 3 ? "تقارير الأداء" :
-               activeTab === 4 ? "إدارة الميزانية" :
-               activeTab === 5 ? "مكتبة المحتوى" : "العقد والفواتير"}
+        {/* TAB 3: الأداء */}
+        {activeTab === 3 && (
+          <>
+            {/* ملاحظة الربط المستقبلي */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-lg">🔗</span>
+              <div>
+                <div className="text-[11px] font-medium text-yellow-700">جاهز للربط مع API المنصات</div>
+                <div className="text-[10px] text-yellow-600">البيانات الحالية من Supabase — ستُحدَّث تلقائياً عند ربط Meta Ads وGoogle Ads API</div>
+              </div>
             </div>
-            <div className="text-xs">ستكون متاحة بعد ربط الحملات الأولى</div>
+
+            {/* KPIs الأداء */}
+            <div className="grid grid-cols-4 gap-3">
+              {(() => {
+                const totalImpressions = campaigns.reduce((s, c) => s + Number(c.impressions || 0), 0);
+                const totalClicks = campaigns.reduce((s, c) => s + Number(c.clicks || 0), 0);
+                const totalOrders = campaigns.reduce((s, c) => s + Number(c.orders || 0), 0);
+                const totalSpendCalc = campaigns.reduce((s, c) => s + Number(c.spend || 0), 0);
+                const avgROI = campaigns.filter(c => Number(c.roi || 0) > 0).length > 0
+                  ? campaigns.reduce((s, c) => s + Number(c.roi || 0), 0) / campaigns.filter(c => Number(c.roi || 0) > 0).length
+                  : 0;
+                const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) : "—";
+                return (
+                  <>
+                    <KpiCard value={totalImpressions > 0 ? `${(totalImpressions / 1000).toFixed(0)}K` : "—"} label="إجمالي الظهور" icon={<BarChart2 size={13} />} iconColor="text-primary-500" iconBg="bg-primary-light" />
+                    <KpiCard value={totalClicks > 0 ? totalClicks.toLocaleString() : "—"} label="إجمالي النقرات" icon={<TrendingUp size={13} />} iconColor="text-green-600" iconBg="bg-green-50" />
+                    <KpiCard value={totalOrders > 0 ? totalOrders.toLocaleString() : "—"} label="إجمالي الطلبات" icon={<Target size={13} />} iconColor="text-yellow-700" iconBg="bg-yellow-50" />
+                    <KpiCard value={avgROI > 0 ? `${avgROI.toFixed(1)}x` : "—"} label="متوسط العائد" icon={<TrendingUp size={13} />} iconColor="text-purple-600" iconBg="bg-purple-50" />
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* أداء كل حملة */}
+            <Card>
+              <CardHeader title="أداء الحملات" icon={<BarChart2 size={14} />} />
+              {campaigns.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-xs">لا توجد حملات بعد</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        {["الحملة", "المنصات", "الظهور", "النقرات", "CTR", "الطلبات", "الإنفاق", "ROI"].map(h => (
+                          <th key={h} className="text-right py-2 px-3 text-[10px] text-gray-400 font-medium">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {campaigns.map((camp, i) => {
+                        const campPlatforms = (camp.platforms as string[]) || [];
+                        const impressions = Number(camp.impressions || 0);
+                        const clicks = Number(camp.clicks || 0);
+                        const orders = Number(camp.orders || 0);
+                        const spend = Number(camp.spend || 0);
+                        const roi = Number(camp.roi || 0);
+                        const ctr = impressions > 0 ? ((clicks / impressions) * 100).toFixed(1) : "—";
+                        return (
+                          <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                            <td className="py-2 px-3">
+                              <div className="font-medium text-gray-800">{String(camp.name || "")}</div>
+                              <StatusBadge status={String(camp.status || "")} />
+                            </td>
+                            <td className="py-2 px-3">
+                              <div className="flex gap-1">
+                                {campPlatforms.slice(0, 3).map(p => (
+                                  <span key={p} className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
+                                    {PLATFORM_LABELS[p]?.slice(0, 3) || p.slice(0, 3)}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-2 px-3 text-gray-600">{impressions > 0 ? impressions.toLocaleString() : "—"}</td>
+                            <td className="py-2 px-3 text-gray-600">{clicks > 0 ? clicks.toLocaleString() : "—"}</td>
+                            <td className="py-2 px-3 text-gray-600">{ctr}{impressions > 0 ? "%" : ""}</td>
+                            <td className="py-2 px-3 text-gray-600">{orders > 0 ? orders : "—"}</td>
+                            <td className="py-2 px-3 text-gray-700 font-medium">{spend > 0 ? `${spend.toLocaleString()} ر.س` : "—"}</td>
+                            <td className="py-2 px-3">
+                              <span className={`font-semibold ${roi >= 3 ? "text-green-600" : roi >= 1.5 ? "text-yellow-700" : "text-gray-400"}`}>
+                                {roi > 0 ? `${roi}x` : "—"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </>
+        )}
+
+        {/* TAB 4: الميزانية */}
+        {activeTab === 4 && (
+          <>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-lg">🔗</span>
+              <div>
+                <div className="text-[11px] font-medium text-yellow-700">جاهز للربط مع API المنصات</div>
+                <div className="text-[10px] text-yellow-600">الإنفاق الفعلي سيُجلب تلقائياً من Meta Ads وGoogle Ads عند الربط</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {(() => {
+                const totalBudget = campaigns.reduce((s, c) => s + Number(c.budget_total || 0), 0);
+                const totalSpendCalc = campaigns.reduce((s, c) => s + Number(c.spend || 0), 0);
+                const remaining = totalBudget - totalSpendCalc;
+                return (
+                  <>
+                    <KpiCard value={totalBudget > 0 ? `${(totalBudget / 1000).toFixed(1)}K` : "—"} label="إجمالي الميزانية (ر.س)" icon={<BarChart2 size={13} />} iconColor="text-primary-500" iconBg="bg-primary-light" />
+                    <KpiCard value={totalSpendCalc > 0 ? `${(totalSpendCalc / 1000).toFixed(1)}K` : "—"} label="إجمالي الإنفاق (ر.س)" icon={<TrendingUp size={13} />} iconColor="text-red-500" iconBg="bg-red-50" />
+                    <KpiCard value={remaining > 0 ? `${(remaining / 1000).toFixed(1)}K` : "—"} label="المتبقي (ر.س)" icon={<Target size={13} />} iconColor="text-green-600" iconBg="bg-green-50" />
+                  </>
+                );
+              })()}
+            </div>
+
+            <Card>
+              <CardHeader title="توزيع الميزانية على الحملات" icon={<BarChart2 size={14} />} />
+              {campaigns.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-xs">لا توجد حملات بعد</div>
+              ) : (
+                <div className="space-y-3">
+                  {campaigns.map((camp, i) => {
+                    const budget = Number(camp.budget_total || 0);
+                    const spend = Number(camp.spend || 0);
+                    const pct = budget > 0 ? Math.round((spend / budget) * 100) : 0;
+                    const isOver = pct > 100;
+                    return (
+                      <div key={i} className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-medium text-gray-800">{String(camp.name || "")}</span>
+                          <span className={`text-[10px] font-medium ${isOver ? "text-red-500" : "text-primary-500"}`}>{pct}%</span>
+                        </div>
+                        <ProgressBar value={Math.min(spend, budget)} max={budget || 1} height="h-[6px]" color={isOver ? "#FF4444" : undefined} />
+                        <div className="flex justify-between text-[10px] text-gray-400">
+                          <span className={isOver ? "text-red-500 font-medium" : ""}>{spend.toLocaleString()} ر.س منفق {isOver && "(تجاوز!)"}</span>
+                          <span>الحد: {budget.toLocaleString()} ر.س</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </>
+        )}
+
+        {/* TAB 5: المحتوى */}
+        {activeTab === 5 && (
+          <ContentTab clientId={params.id} />
+        )}
+
+        {/* TAB 6: العقد والفواتير */}
+        {activeTab === 6 && (
+          <div className="text-center py-16 text-gray-400">
+            <FileText size={32} className="mx-auto mb-3 opacity-30" />
+            <div className="text-sm mb-1">العقد والفواتير</div>
+            <div className="text-xs mb-4">سيتم إضافة نظام العقود والفواتير قريباً</div>
+            <div className="text-[10px] bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 inline-block text-yellow-700">
+              🔗 سيرتبط بنظام الدفع عند الربط مع المنصات
+            </div>
           </div>
         )}
 
       </div>
     </div>
+  );
+}
+
+// ===== CONTENT TAB COMPONENT =====
+function ContentTab({ clientId }: { clientId: string }) {
+  const [content, setContent] = useState<Record<string, unknown>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createSupabaseClient();
+
+  const PLATFORM_LABELS_LOCAL: Record<string, string> = {
+    instagram: "انستقرام", snapchat: "سناب شات", google: "قوقل",
+    tiktok: "تيك توك", twitter: "تويتر", facebook: "فيسبوك",
+    youtube: "يوتيوب", maps: "قوقل ماب",
+  };
+
+  useEffect(() => {
+    async function fetchContent() {
+      const { data } = await supabase
+        .from("content")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false });
+      setContent(data || []);
+      setLoading(false);
+    }
+    fetchContent();
+  }, [clientId]);
+
+  async function updateContentStatus(id: string, status: string) {
+    await supabase.from("content").update({ status }).eq("id", id);
+    setContent(prev => prev.map(c => String(c.id) === id ? { ...c, status } : c));
+  }
+
+  if (loading) return <div className="text-center py-8"><Loader2 size={20} className="animate-spin text-primary-500 mx-auto" /></div>;
+
+  return (
+    <>
+      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-center gap-2">
+        <span className="text-lg">🔗</span>
+        <div>
+          <div className="text-[11px] font-medium text-yellow-700">جاهز للنشر التلقائي</div>
+          <div className="text-[10px] text-yellow-600">عند ربط API المنصات سيُنشر المحتوى تلقائياً في الأوقات المجدولة</div>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader title={`مكتبة المحتوى (${content.length})`} icon={<FileText size={14} />} />
+        {content.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 text-xs">لا يوجد محتوى بعد</div>
+        ) : (
+          <div className="space-y-3">
+            {content.map((c, i) => (
+              <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-b border-gray-100">
+                  <span className="text-[10px] font-medium text-gray-600">
+                    {PLATFORM_LABELS_LOCAL[String(c.platform || "")] || String(c.platform || "")}
+                  </span>
+                  <span className="text-[9px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full mr-auto">
+                    {String(c.type || "")}
+                  </span>
+                  {Number(c.ai_score || 0) > 0 && (
+                    <span className="text-[10px] text-green-600 font-medium">نقاط: {Number(c.ai_score)}</span>
+                  )}
+                  <StatusBadge status={String(c.status || "")} />
+                </div>
+                <div className="p-3">
+                  <p className="text-xs text-gray-700 leading-relaxed mb-2">{String(c.caption || "")}</p>
+                  {(c.hashtags as string[] || []).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {(c.hashtags as string[]).map((h, hi) => (
+                        <span key={hi} className="text-[10px] text-primary-500">{h}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2 mt-2">
+                    {String(c.status) === "pending_review" && (
+                      <>
+                        <button onClick={() => updateContentStatus(String(c.id), "approved")}
+                          className="px-3 py-1 bg-green-50 border border-green-200 text-green-600 rounded-lg text-[10px] hover:bg-green-100">
+                          ✓ اعتماد
+                        </button>
+                        <button onClick={() => updateContentStatus(String(c.id), "rejected")}
+                          className="px-3 py-1 bg-red-50 border border-red-200 text-red-500 rounded-lg text-[10px] hover:bg-red-100">
+                          ✕ رفض
+                        </button>
+                      </>
+                    )}
+                    {String(c.status) === "approved" && (
+                      <span className="text-[10px] text-green-600 flex items-center gap-1">✓ معتمد — جاهز للنشر</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </>
   );
 }
