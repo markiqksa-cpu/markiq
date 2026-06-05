@@ -341,7 +341,10 @@ export default function ClientProfilePage({ params }: ClientProfileProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Card>
-                <CardHeader title="بيانات العميل" icon={<FileCheck size={14} />} action="تعديل" onAction={() => setShowEdit(true)} />
+                <div className="flex items-center justify-between mb-3">
+  <CardHeader title="بيانات العميل" icon={<FileCheck size={14} />} />
+  <button onClick={() => setShowEdit(true)} className="text-[11px] text-primary-500 hover:underline">تعديل</button>
+</div>
                 {[
                   ["القطاع", sector],
                   ["موقع النشاط", `${city} — ${neighborhood}`],
