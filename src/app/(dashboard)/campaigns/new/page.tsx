@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Megaphone, DollarSign, FileText, Sparkles, Calendar,
@@ -135,7 +135,7 @@ interface FormData {
   endDate: string;
 }
 
-export default function CampaignBuilderPage() {
+function CampaignBuilderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clientId = searchParams.get("client") || "";
@@ -681,5 +681,13 @@ export default function CampaignBuilderPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CampaignBuilderPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-xs text-gray-400">جاري التحميل...</div></div>}>
+      <CampaignBuilderContent />
+    </Suspense>
   );
 }
