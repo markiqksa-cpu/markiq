@@ -37,7 +37,7 @@ Clean, professional, visually appealing for Saudi Arabian audience.`;
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "dall-e-3",
+        model: "dall-e-2",
         prompt: imagePrompt,
         n: 1,
         size: platform === "instagram" ? "1024x1024" : 
