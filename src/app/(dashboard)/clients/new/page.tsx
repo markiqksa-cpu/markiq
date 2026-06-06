@@ -465,7 +465,7 @@ export default function NewClientPage() {
                           if (opt.val === "districts") update("targetAreas", []);
                         }}
                         className={`flex-1 py-2 px-2 rounded-lg text-[11px] border text-center transition-colors ${
-                          (form as Record<string, unknown>).targetScope === opt.val || (!( form as Record<string, unknown>).targetScope && opt.val === "districts")
+                          form.targetScope === opt.val || (!form.targetScope && opt.val === "districts")istricts")
                             ? "bg-primary-light border-blue-300 text-primary-500 font-medium"
                             : "border-gray-200 text-gray-600 hover:border-gray-300"
                         }`}>
@@ -475,7 +475,7 @@ export default function NewClientPage() {
                   </div>
 
                   {/* تحديد الأحياء فقط إذا اختار أحياء محددة */}
-                  {(!(form as Record<string, unknown>).targetScope || (form as Record<string, unknown>).targetScope === "districts") && (
+                  {(!form.targetScope || form.targetScope === "districts") && (
                     <DistrictSelector
                       city={form.city}
                       selected={form.targetAreas}
@@ -486,13 +486,13 @@ export default function NewClientPage() {
                     />
                   )}
 
-                  {(form as Record<string, unknown>).targetScope === "full_city" && (
+                  {form.targetScope === "full_city" && (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
                       🏙️ سيتم استهداف جميع أحياء <strong>{form.city}</strong>
                     </div>
                   )}
 
-                  {(form as Record<string, unknown>).targetScope === "full_ksa" && (
+                  {form.targetScope === "full_ksa" && (
                     <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
                       🇸🇦 سيتم استهداف جميع مناطق <strong>المملكة العربية السعودية</strong>
                     </div>
