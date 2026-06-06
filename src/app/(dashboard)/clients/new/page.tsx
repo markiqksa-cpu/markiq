@@ -446,17 +446,55 @@ export default function NewClientPage() {
               {form.city && (
                 <div>
                   <label className="block text-[11px] text-gray-500 mb-2">
-                    الأحياء المستهدفة
-                    <span className="text-gray-400 mr-1 text-[10px]">— اختر من 1 إلى 20 حي</span>
+                    نطاق الاستهداف الجغرافي
                   </label>
-                  <DistrictSelector
-                    city={form.city}
-                    selected={form.targetAreas}
-                    onChange={areas => {
-                      update("targetAreas", areas);
-                      if (areas.length > 0 && !form.neighborhood) update("neighborhood", areas[0]);
-                    }}
-                  />
+                  {/* خيارات النطاق */}
+                  <div className="flex gap-2 mb-3">
+                    {[
+                      { val: "districts", lbl: "أحياء محددة", icon: "📍" },
+                      { val: "full_city", lbl: "المدينة كاملة", icon: "🏙️" },
+                      { val: "full_ksa", lbl: "المملكة كاملة", icon: "🇸🇦" },
+                    ].map(opt => (
+                      <button key={opt.val}
+                        onClick={() => {
+                          update("targetScope", opt.val);
+                          if (opt.val === "full_city") update("targetAreas", [`${form.city} — كاملة`]);
+                          if (opt.val === "full_ksa") update("targetAreas", ["المملكة العربية السعودية — كاملة"]);
+                          if (opt.val === "districts") update("targetAreas", []);
+                        }}
+                        className={`flex-1 py-2 px-2 rounded-lg text-[11px] border text-center transition-colors ${
+                          (form as Record<string, unknown>).targetScope === opt.val || (!( form as Record<string, unknown>).targetScope && opt.val === "districts")
+                            ? "bg-primary-light border-blue-300 text-primary-500 font-medium"
+                            : "border-gray-200 text-gray-600 hover:border-gray-300"
+                        }`}>
+                        {opt.icon} {opt.lbl}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* تحديد الأحياء فقط إذا اختار أحياء محددة */}
+                  {(!(form as Record<string, unknown>).targetScope || (form as Record<string, unknown>).targetScope === "districts") && (
+                    <DistrictSelector
+                      city={form.city}
+                      selected={form.targetAreas}
+                      onChange={areas => {
+                        update("targetAreas", areas);
+                        if (areas.length > 0 && !form.neighborhood) update("neighborhood", areas[0]);
+                      }}
+                    />
+                  )}
+
+                  {(form as Record<string, unknown>).targetScope === "full_city" && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
+                      🏙️ سيتم استهداف جميع أحياء <strong>{form.city}</strong>
+                    </div>
+                  )}
+
+                  {(form as Record<string, unknown>).targetScope === "full_ksa" && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
+                      🇸🇦 سيتم استهداف جميع مناطق <strong>المملكة العربية السعودية</strong>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -482,13 +520,27 @@ export default function NewClientPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">الاهتمامات</label>
+                <label className="block text-[11px] text-gray-500 mb-1">الاهتمامات والسلوك الشرائي</label>
+                <div className="text-[10px] text-gray-400 mb-2">
+                  أمثلة: الأكل خارج المنزل، التسوق أونلاين، السيارات الفارهة، العناية بالبشرة، الرياضة، السفر، الألعاب الإلكترونية...
+                </div>
                 <div className="flex gap-2 mb-2">
                   <input type="text" value={newInterest} onChange={e => setNewInterest(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && addToArray("interests", newInterest, setNewInterest)}
-                    placeholder="اكتب اهتماماً واضغط Enter..."
+                    placeholder="مثال: الأكل خارج المنزل، ثم اضغط Enter أو إضافة"
                     className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50" />
                   <Button size="sm" onClick={() => addToArray("interests", newInterest, setNewInterest)} icon={<Plus size={11} />}>إضافة</Button>
+                </div>
+                {/* اقتراحات سريعة */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {["الأكل خارج المنزل", "التسوق أونلاين", "السيارات", "العناية بالمظهر", "الرياضة", "السفر", "الألعاب", "التقنية"].map(suggestion => (
+                    !form.interests.includes(suggestion) && (
+                      <button key={suggestion} onClick={() => update("interests", [...form.interests, suggestion])}
+                        className="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] hover:bg-primary-light hover:text-primary-500 transition-colors">
+                        + {suggestion}
+                      </button>
+                    )
+                  ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {form.interests.map(int => (
