@@ -79,8 +79,7 @@ const STEPS = [
 
 interface FormData {
   name: string; nameEn: string; sector: string;
-  activityDescription: string;
-targetScope: string;
+  activityDescription: string; targetScope: string;
   website: string; instagram: string; budgetMonthly: number;
   city: string; neighborhood: string; targetAreas: string[];
   targetAge: string; targetGender: "all" | "male" | "female";
@@ -90,8 +89,7 @@ targetScope: string;
 }
 
 const INITIAL_DATA: FormData = {
-  name: "", nameEn: "", sector: "", activityDescription: "",
-targetScope: "districts",
+  name: "", nameEn: "", sector: "", activityDescription: "", targetScope: "districts",
   website: "", instagram: "", budgetMonthly: 5000,
   city: "", neighborhood: "", targetAreas: [],
   targetAge: "25-34", targetGender: "all", interests: [],
@@ -100,7 +98,6 @@ targetScope: "districts",
   contentLanguage: "arabic_saudi", notes: "",
 };
 
-// ===== City Search Component =====
 function CitySearch({ value, onChange }: { value: string; onChange: (city: string) => void }) {
   const [query, setQuery] = useState(value);
   const [results, setResults] = useState<string[]>([]);
@@ -108,9 +105,7 @@ function CitySearch({ value, onChange }: { value: string; onChange: (city: strin
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (value) setQuery(value);
-  }, [value]);
+  useEffect(() => { if (value) setQuery(value); }, [value]);
 
   useEffect(() => {
     if (!query || query.length < 1) { setResults([]); return; }
@@ -141,10 +136,10 @@ function CitySearch({ value, onChange }: { value: string; onChange: (city: strin
         <input type="text" value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); onChange(""); }}
           onFocus={() => query && setOpen(true)}
-          placeholder="ابحث عن المدينة..."
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50 pr-8" />
+          placeholder="ابحث عن المدينة... (مثال: الرياض، جدة، الدمام)"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50" />
         {loading && <Loader2 size={12} className="absolute left-2 top-2.5 animate-spin text-gray-400" />}
-        {value && <div className="absolute left-2 top-2 w-2 h-2 rounded-full bg-green-400" />}
+        {value && <div className="absolute left-2 top-3 w-2 h-2 rounded-full bg-green-400" />}
       </div>
       {open && results.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
@@ -160,10 +155,7 @@ function CitySearch({ value, onChange }: { value: string; onChange: (city: strin
   );
 }
 
-// ===== District Multi-Select Component =====
-function DistrictSelector({
-  city, selected, onChange
-}: { city: string; selected: string[]; onChange: (areas: string[]) => void }) {
+function DistrictSelector({ city, selected, onChange }: { city: string; selected: string[]; onChange: (areas: string[]) => void }) {
   const [query, setQuery] = useState("");
   const [allDistricts, setAllDistricts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -177,50 +169,33 @@ function DistrictSelector({
       .catch(() => setLoading(false));
   }, [city]);
 
-  const filtered = query
-    ? allDistricts.filter(d => d.includes(query))
-    : allDistricts;
+  const filtered = query ? allDistricts.filter(d => d.includes(query)) : allDistricts;
 
   function toggle(district: string) {
-    if (selected.includes(district)) {
-      onChange(selected.filter(d => d !== district));
-    } else {
-      onChange([...selected, district]);
-    }
+    if (selected.includes(district)) onChange(selected.filter(d => d !== district));
+    else onChange([...selected, district]);
   }
 
-  if (!city) return (
-    <div className="text-xs text-gray-400 bg-gray-50 rounded-xl p-4 text-center">
-      اختر المدينة أولاً لعرض الأحياء
-    </div>
-  );
+  if (!city) return <div className="text-xs text-gray-400 bg-gray-50 rounded-xl p-4 text-center">اختر المدينة أولاً</div>;
 
   return (
     <div className="space-y-2">
-      {/* الأحياء المختارة */}
       {selected.length > 0 && (
         <div className="flex flex-wrap gap-1.5 p-2 bg-primary-light border border-blue-200 rounded-xl">
-          <div className="w-full text-[10px] text-primary-500 font-medium mb-1">
-            {selected.length} حي مختار:
-          </div>
+          <div className="w-full text-[10px] text-primary-500 font-medium mb-1">{selected.length} حي مختار:</div>
           {selected.map(d => (
             <span key={d} className="flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 text-primary-500 rounded-full text-[10px]">
-              {d}
-              <button onClick={() => toggle(d)}><X size={8} /></button>
+              {d}<button onClick={() => toggle(d)}><X size={8} /></button>
             </span>
           ))}
         </div>
       )}
-
-      {/* بحث */}
       <div className="relative">
         <Search size={12} className="absolute right-2.5 top-2.5 text-gray-400" />
         <input type="text" value={query} onChange={e => setQuery(e.target.value)}
           placeholder={`ابحث في أحياء ${city}...`}
           className="w-full pr-7 pl-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50" />
       </div>
-
-      {/* قائمة الأحياء */}
       {loading ? (
         <div className="text-center py-4"><Loader2 size={16} className="animate-spin text-primary-500 mx-auto" /></div>
       ) : (
@@ -231,11 +206,7 @@ function DistrictSelector({
             <div className="grid grid-cols-3 gap-px bg-gray-100">
               {filtered.map(district => (
                 <button key={district} onClick={() => toggle(district)}
-                  className={`text-right px-2.5 py-2 text-[10.5px] transition-colors ${
-                    selected.includes(district)
-                      ? "bg-primary-light text-primary-500 font-medium"
-                      : "bg-white text-gray-600 hover:bg-gray-50"
-                  }`}>
+                  className={`text-right px-2.5 py-2 text-[10.5px] transition-colors ${selected.includes(district) ? "bg-primary-light text-primary-500 font-medium" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
                   {selected.includes(district) && "✓ "}{district}
                 </button>
               ))}
@@ -257,12 +228,9 @@ export default function NewClientPage() {
   const [newInterest, setNewInterest] = useState("");
   const [newCompetitor, setNewCompetitor] = useState("");
   const [newKeyword, setNewKeyword] = useState("");
-
   const supabase = createClient();
 
-  function update(field: keyof FormData, value: unknown) {
-    setForm(prev => ({ ...prev, [field]: value }));
-  }
+  function update(field: keyof FormData, value: unknown) { setForm(prev => ({ ...prev, [field]: value })); }
   function toggleArray(field: keyof FormData, val: string) {
     const arr = form[field] as string[];
     update(field, arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
@@ -278,47 +246,26 @@ export default function NewClientPage() {
   }
 
   async function handleSave() {
-    setSaving(true);
-    setError(null);
+    setSaving(true); setError(null);
     try {
-      const { data, error: err } = await supabase
-        .from("clients")
-        .insert([{
-          name: form.name,
-          name_en: form.nameEn || null,
-          sector: form.sector,
-          city: form.city,
-          neighborhood: form.neighborhood || form.targetAreas[0] || "",
-          target_areas: form.targetAreas,
-          target_age: form.targetAge,
-          target_gender: form.targetGender,
-          interests: form.interests,
-          content_language: form.contentLanguage,
-          platforms: form.platforms,
-          goals: form.goals,
-          seo_keywords: form.seoKeywords,
-          seo_level: form.seoLevel,
-          website_url: form.website || null,
-          instagram_url: form.instagram || null,
-          competitors: form.competitors,
-          description: form.activityDescription || null,
-          budget_monthly: form.budgetMonthly,
-          status: "pending",
-        }])
-        .select()
-        .single();
-
+      const { data, error: err } = await supabase.from("clients").insert([{
+        name: form.name, name_en: form.nameEn || null, sector: form.sector,
+        city: form.city, neighborhood: form.neighborhood || form.targetAreas[0] || "",
+        target_areas: form.targetAreas, target_age: form.targetAge, target_gender: form.targetGender,
+        interests: form.interests, content_language: form.contentLanguage, platforms: form.platforms,
+        goals: form.goals, seo_keywords: form.seoKeywords, seo_level: form.seoLevel,
+        website_url: form.website || null, instagram_url: form.instagram || null,
+        competitors: form.competitors, description: form.activityDescription || null,
+        budget_monthly: form.budgetMonthly, status: "pending",
+      }]).select().single();
       if (err) throw err;
       router.push(`/clients/${data.id}/strategy`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "حدث خطأ في الحفظ");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   }
 
   const selectedSector = SECTORS.find(s => s.value === form.sector);
-
   const canNext = () => {
     if (step === 1) return form.name && form.sector && form.activityDescription;
     if (step === 2) return form.city;
@@ -329,11 +276,7 @@ export default function NewClientPage() {
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       <TopNav alertCount={3} user={{ name: "عمر", email: "omar@markiq.sa", role: "admin" }} />
-      <Breadcrumb items={[
-        { label: "لوحة التحكم", href: "/dashboard" },
-        { label: "العملاء", href: "/clients" },
-        { label: "إضافة عميل جديد" },
-      ]} />
+      <Breadcrumb items={[{ label: "لوحة التحكم", href: "/dashboard" }, { label: "العملاء", href: "/clients" }, { label: "إضافة عميل جديد" }]} />
 
       <div className="bg-white border-b border-gray-200 px-5 py-3">
         <div className="flex items-center gap-2 max-w-3xl mx-auto overflow-x-auto">
@@ -353,43 +296,33 @@ export default function NewClientPage() {
 
       <div className="p-4 max-w-3xl mx-auto">
 
-        {/* STEP 1 */}
         {step === 1 && (
           <Card>
-            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Building2 size={15} className="text-primary-500" /> بيانات النشاط التجاري
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2"><Building2 size={15} className="text-primary-500" /> بيانات النشاط التجاري</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] text-gray-500 mb-1">اسم النشاط بالعربي <span className="text-red-500">*</span></label>
-                  <input type="text" value={form.name} onChange={e => update("name", e.target.value)}
-                    placeholder="مثال: معك رونة"
+                  <input type="text" value={form.name} onChange={e => update("name", e.target.value)} placeholder="مثال: معك رونة"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50" />
                 </div>
                 <div>
                   <label className="block text-[11px] text-gray-500 mb-1">اسم النشاط بالإنجليزي</label>
-                  <input type="text" value={form.nameEn} onChange={e => update("nameEn", e.target.value)}
-                    placeholder="Ma3ak Rona" dir="ltr"
+                  <input type="text" value={form.nameEn} onChange={e => update("nameEn", e.target.value)} placeholder="Ma3ak Rona" dir="ltr"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50" />
                 </div>
               </div>
-
               <div>
                 <label className="block text-[11px] text-gray-500 mb-2">القطاع <span className="text-red-500">*</span></label>
                 <div className="grid grid-cols-4 gap-2">
                   {SECTORS.map(s => (
                     <button key={s.value} onClick={() => update("sector", s.value)}
-                      className={`py-2.5 px-2 rounded-lg text-[10px] border text-center transition-colors ${
-                        form.sector === s.value ? "bg-primary-light border-blue-300 text-primary-500 font-medium" : "border-gray-200 text-gray-600 hover:border-primary-300"
-                      }`}>
-                      <div className="text-lg mb-0.5">{s.icon}</div>
-                      {s.label}
+                      className={`py-2.5 px-2 rounded-lg text-[10px] border text-center transition-colors ${form.sector === s.value ? "bg-primary-light border-blue-300 text-primary-500 font-medium" : "border-gray-200 text-gray-600 hover:border-primary-300"}`}>
+                      <div className="text-lg mb-0.5">{s.icon}</div>{s.label}
                     </button>
                   ))}
                 </div>
               </div>
-
               {form.sector && (
                 <div>
                   <label className="block text-[11px] text-gray-500 mb-1">
@@ -405,22 +338,18 @@ export default function NewClientPage() {
                       form.sector === "retail" ? "مثال: متجر ألعاب أطفال يبيع ألعاب تعليمية وترفيهية، يستهدف الأمهات والعائلات..." :
                       "اكتب وصفاً تفصيلياً: ما تبيعه أو تقدمه، جمهورك المستهدف، ما يميزك عن المنافسين..."
                     }
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50 resize-none" />
+                    rows={4} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50 resize-none" />
                 </div>
               )}
-
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] text-gray-500 mb-1">الموقع الإلكتروني</label>
-                  <input type="url" value={form.website} onChange={e => update("website", e.target.value)}
-                    placeholder="https://..." dir="ltr"
+                  <input type="url" value={form.website} onChange={e => update("website", e.target.value)} placeholder="https://..." dir="ltr"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50" />
                 </div>
                 <div>
                   <label className="block text-[11px] text-gray-500 mb-1">انستقرام</label>
-                  <input type="text" value={form.instagram} onChange={e => update("instagram", e.target.value)}
-                    placeholder="@username" dir="ltr"
+                  <input type="text" value={form.instagram} onChange={e => update("instagram", e.target.value)} placeholder="@username" dir="ltr"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50" />
                 </div>
                 <div>
@@ -433,24 +362,18 @@ export default function NewClientPage() {
           </Card>
         )}
 
-        {/* STEP 2 */}
         {step === 2 && (
           <Card>
-            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <MapPin size={15} className="text-primary-500" /> الموقع والاستهداف الجغرافي
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2"><MapPin size={15} className="text-primary-500" /> الموقع والاستهداف الجغرافي</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-[11px] text-gray-500 mb-1">المدينة <span className="text-red-500">*</span></label>
-                <CitySearch value={form.city} onChange={city => { update("city", city); update("targetAreas", []); update("neighborhood", ""); }} />
+                <CitySearch value={form.city} onChange={city => { update("city", city); update("targetAreas", []); update("neighborhood", ""); update("targetScope", "districts"); }} />
               </div>
 
               {form.city && (
                 <div>
-                  <label className="block text-[11px] text-gray-500 mb-2">
-                    نطاق الاستهداف الجغرافي
-                  </label>
-                  {/* خيارات النطاق */}
+                  <label className="block text-[11px] text-gray-500 mb-2">نطاق الاستهداف الجغرافي</label>
                   <div className="flex gap-2 mb-3">
                     {[
                       { val: "districts", lbl: "أحياء محددة", icon: "📍" },
@@ -465,33 +388,22 @@ export default function NewClientPage() {
                           if (opt.val === "districts") update("targetAreas", []);
                         }}
                         className={`flex-1 py-2 px-2 rounded-lg text-[11px] border text-center transition-colors ${
-                          form.targetScope === opt.val || (!form.targetScope && opt.val === "districts")istricts")
-                            ? "bg-primary-light border-blue-300 text-primary-500 font-medium"
-                            : "border-gray-200 text-gray-600 hover:border-gray-300"
+                          form.targetScope === opt.val ? "bg-primary-light border-blue-300 text-primary-500 font-medium" : "border-gray-200 text-gray-600 hover:border-gray-300"
                         }`}>
                         {opt.icon} {opt.lbl}
                       </button>
                     ))}
                   </div>
 
-                  {/* تحديد الأحياء فقط إذا اختار أحياء محددة */}
-                  {(!form.targetScope || form.targetScope === "districts") && (
-                    <DistrictSelector
-                      city={form.city}
-                      selected={form.targetAreas}
-                      onChange={areas => {
-                        update("targetAreas", areas);
-                        if (areas.length > 0 && !form.neighborhood) update("neighborhood", areas[0]);
-                      }}
-                    />
+                  {form.targetScope === "districts" && (
+                    <DistrictSelector city={form.city} selected={form.targetAreas}
+                      onChange={areas => { update("targetAreas", areas); if (areas.length > 0 && !form.neighborhood) update("neighborhood", areas[0]); }} />
                   )}
-
                   {form.targetScope === "full_city" && (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
                       🏙️ سيتم استهداف جميع أحياء <strong>{form.city}</strong>
                     </div>
                   )}
-
                   {form.targetScope === "full_ksa" && (
                     <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
                       🇸🇦 سيتم استهداف جميع مناطق <strong>المملكة العربية السعودية</strong>
@@ -523,23 +435,20 @@ export default function NewClientPage() {
 
               <div>
                 <label className="block text-[11px] text-gray-500 mb-1">الاهتمامات والسلوك الشرائي</label>
-                <div className="text-[10px] text-gray-400 mb-2">
-                  أمثلة: الأكل خارج المنزل، التسوق أونلاين، السيارات الفارهة، العناية بالبشرة، الرياضة، السفر، الألعاب الإلكترونية...
-                </div>
+                <div className="text-[10px] text-gray-400 mb-2">أمثلة: الأكل خارج المنزل، التسوق أونلاين، السيارات الفارهة، العناية بالبشرة، الرياضة...</div>
                 <div className="flex gap-2 mb-2">
                   <input type="text" value={newInterest} onChange={e => setNewInterest(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && addToArray("interests", newInterest, setNewInterest)}
-                    placeholder="مثال: الأكل خارج المنزل، ثم اضغط Enter أو إضافة"
+                    placeholder="مثال: الأكل خارج المنزل — ثم اضغط Enter"
                     className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary-500 bg-gray-50" />
                   <Button size="sm" onClick={() => addToArray("interests", newInterest, setNewInterest)} icon={<Plus size={11} />}>إضافة</Button>
                 </div>
-                {/* اقتراحات سريعة */}
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                  {["الأكل خارج المنزل", "التسوق أونلاين", "السيارات", "العناية بالمظهر", "الرياضة", "السفر", "الألعاب", "التقنية"].map(suggestion => (
-                    !form.interests.includes(suggestion) && (
-                      <button key={suggestion} onClick={() => update("interests", [...form.interests, suggestion])}
+                  {["الأكل خارج المنزل", "التسوق أونلاين", "السيارات", "العناية بالمظهر", "الرياضة", "السفر", "الألعاب", "التقنية"].map(s => (
+                    !form.interests.includes(s) && (
+                      <button key={s} onClick={() => update("interests", [...form.interests, s])}
                         className="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] hover:bg-primary-light hover:text-primary-500 transition-colors">
-                        + {suggestion}
+                        + {s}
                       </button>
                     )
                   ))}
@@ -556,12 +465,9 @@ export default function NewClientPage() {
           </Card>
         )}
 
-        {/* STEP 3 */}
         {step === 3 && (
           <Card>
-            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Target size={15} className="text-primary-500" /> المنصات والأهداف التسويقية
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2"><Target size={15} className="text-primary-500" /> المنصات والأهداف التسويقية</h2>
             <div className="space-y-5">
               <div>
                 <label className="block text-[11px] text-gray-500 mb-2">المنصات الإعلانية <span className="text-red-500">*</span></label>
@@ -576,12 +482,12 @@ export default function NewClientPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-[11px] text-gray-500 mb-2">الأهداف التسويقية <span className="text-red-500">*</span></label>
+                <label className="block text-[11px] text-gray-500 mb-2">الأهداف التسويقية <span className="text-red-500">*</span> <span className="text-gray-400 text-[10px]">— يمكن اختيار أكثر من هدف</span></label>
                 <div className="space-y-2">
                   {GOALS.map(g => (
                     <button key={g} onClick={() => toggleArray("goals", g)}
                       className={`w-full text-right px-3 py-2 rounded-lg text-xs border transition-colors flex items-center gap-2 ${form.goals.includes(g) ? "bg-green-50 border-green-300 text-green-700" : "border-gray-200 text-gray-600 hover:border-green-200"}`}>
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${form.goals.includes(g) ? "bg-green-500 border-green-500" : "border-gray-300"}`}>
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${form.goals.includes(g) ? "bg-green-500 border-green-500" : "border-gray-300"}`}>
                         {form.goals.includes(g) && <CheckCircle size={10} className="text-white" />}
                       </div>
                       {g}
@@ -610,12 +516,9 @@ export default function NewClientPage() {
           </Card>
         )}
 
-        {/* STEP 4 */}
         {step === 4 && (
           <Card>
-            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Search size={15} className="text-primary-500" /> SEO والمحتوى
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2"><Search size={15} className="text-primary-500" /> SEO والمحتوى</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-[11px] text-gray-500 mb-1">مستوى SEO الحالي</label>
@@ -666,30 +569,14 @@ export default function NewClientPage() {
           </Card>
         )}
 
-        {/* STEP 5 */}
         {step === 5 && (
           <Card>
-            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <CheckCircle size={15} className="text-primary-500" /> مراجعة البيانات قبل الحفظ
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2"><CheckCircle size={15} className="text-primary-500" /> مراجعة البيانات قبل الحفظ</h2>
             <div className="space-y-3">
               {[
-                { title: "بيانات النشاط", rows: [
-                  ["الاسم", form.name || "—"],
-                  ["القطاع", `${selectedSector?.icon} ${selectedSector?.label}` || "—"],
-                  ["وصف النشاط", form.activityDescription || "—"],
-                  ["الميزانية", `${form.budgetMonthly.toLocaleString()} ر.س`],
-                ]},
-                { title: "الاستهداف", rows: [
-                  ["المدينة", form.city || "—"],
-                  ["الأحياء المستهدفة", form.targetAreas.length > 0 ? `${form.targetAreas.length} حي: ${form.targetAreas.slice(0, 3).join("، ")}${form.targetAreas.length > 3 ? "..." : ""}` : "—"],
-                  ["الفئة العمرية", form.targetAge],
-                  ["الجنس", form.targetGender === "all" ? "الجميع" : form.targetGender === "male" ? "رجال" : "نساء"],
-                ]},
-                { title: "المنصات والأهداف", rows: [
-                  ["المنصات", form.platforms.map(p => PLATFORMS.find(pl => pl.id === p)?.label || p).join("، ") || "—"],
-                  ["الأهداف", form.goals.join("، ") || "—"],
-                ]},
+                { title: "بيانات النشاط", rows: [["الاسم", form.name || "—"], ["القطاع", `${selectedSector?.icon} ${selectedSector?.label}` || "—"], ["وصف النشاط", form.activityDescription || "—"], ["الميزانية", `${form.budgetMonthly.toLocaleString()} ر.س`]] },
+                { title: "الاستهداف", rows: [["المدينة", form.city || "—"], ["النطاق", form.targetScope === "full_ksa" ? "المملكة كاملة" : form.targetScope === "full_city" ? `${form.city} كاملة` : `${form.targetAreas.length} حي`], ["الفئة العمرية", form.targetAge], ["الجنس", form.targetGender === "all" ? "الجميع" : form.targetGender === "male" ? "رجال" : "نساء"]] },
+                { title: "المنصات والأهداف", rows: [["المنصات", form.platforms.map(p => PLATFORMS.find(pl => pl.id === p)?.label || p).join("، ") || "—"], ["الأهداف", form.goals.join("، ") || "—"]] },
               ].map((section, si) => (
                 <div key={si} className="bg-gray-50 rounded-xl p-3">
                   <div className="text-[11px] font-semibold text-gray-600 mb-2">{section.title}</div>
@@ -701,9 +588,7 @@ export default function NewClientPage() {
                   ))}
                 </div>
               ))}
-
               {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-600">{error}</div>}
-
               <div className="bg-primary-light border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
                 <strong>بعد الحفظ:</strong> سيقوم Claude AI تلقائياً بتوليد استراتيجية تسويقية مخصصة بناءً على بيانات نشاطك.
               </div>
