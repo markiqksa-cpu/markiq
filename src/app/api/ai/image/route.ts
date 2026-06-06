@@ -10,7 +10,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "البرومبت مطلوب" }, { status: 400 });
     }
 
-    // بناء برومبت احترافي مناسب للمنصة
     const platformSpecs: Record<string, string> = {
       instagram: "square format 1:1, vibrant colors, high contrast, Instagram-ready",
       snapchat: "vertical format 9:16, youthful energetic style, bold colors",
@@ -37,30 +36,27 @@ Clean, professional, visually appealing for Saudi Arabian audience.`;
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "dall-e-2",
+        model: "gpt-image-1",
         prompt: imagePrompt,
         n: 1,
-        size: platform === "instagram" ? "1024x1024" : 
-              platform === "snapchat" || platform === "tiktok" ? "1024x1792" : 
-              "1792x1024",
-        quality: "standard",
-        
+        size: platform === "instagram" ? "1024x1024" :
+              platform === "snapchat" || platform === "tiktok" ? "1024x1536" :
+              "1536x1024",
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || `DALL-E API error: ${response.status}`);
+      throw new Error(error.error?.message || `API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const imageUrl = data.data[0]?.url;
-    const revisedPrompt = data.data[0]?.revised_prompt;
+    
+    // gpt-image-1 يرجع base64 وليس URL
+    const imageData = data.data[0]?.b64_json;
+    const imageUrl = imageData ? `data:image/png;base64,${imageData}` : null;
 
-    return NextResponse.json({ 
-      imageUrl,
-      revisedPrompt,
-    });
+    return NextResponse.json({ imageUrl });
 
   } catch (error) {
     console.error("Image generation error:", error);
