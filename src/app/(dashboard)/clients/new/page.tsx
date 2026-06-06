@@ -268,7 +268,7 @@ export default function NewClientPage() {
   const selectedSector = SECTORS.find(s => s.value === form.sector);
   const canNext = () => {
     if (step === 1) return form.name && form.sector && form.activityDescription;
-    if (step === 2) return form.city;
+    if (step === 2) return form.targetScope === "full_ksa" || form.city;
     if (step === 3) return form.platforms.length > 0 && form.goals.length > 0;
     return true;
   };
@@ -366,49 +366,62 @@ export default function NewClientPage() {
           <Card>
             <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2"><MapPin size={15} className="text-primary-500" /> الموقع والاستهداف الجغرافي</h2>
             <div className="space-y-4">
+
+              {/* نطاق الاستهداف أولاً */}
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">المدينة <span className="text-red-500">*</span></label>
-                <CitySearch value={form.city} onChange={city => { update("city", city); update("targetAreas", []); update("neighborhood", ""); update("targetScope", "districts"); }} />
+                <label className="block text-[11px] text-gray-500 mb-2">نطاق الاستهداف <span className="text-red-500">*</span></label>
+                <div className="flex gap-2">
+                  {[
+                    { val: "districts", lbl: "أحياء محددة", icon: "📍" },
+                    { val: "full_city", lbl: "مدينة كاملة", icon: "🏙️" },
+                    { val: "full_ksa", lbl: "المملكة كاملة", icon: "🇸🇦" },
+                  ].map(opt => (
+                    <button key={opt.val}
+                      onClick={() => {
+                        update("targetScope", opt.val);
+                        if (opt.val === "full_ksa") {
+                          update("targetAreas", ["المملكة العربية السعودية — كاملة"]);
+                          update("city", "المملكة العربية السعودية");
+                          update("neighborhood", "");
+                        } else {
+                          update("targetAreas", []);
+                        }
+                      }}
+                      className={`flex-1 py-3 px-2 rounded-xl text-[11px] border text-center transition-colors ${
+                        form.targetScope === opt.val ? "bg-primary-light border-blue-300 text-primary-500 font-medium shadow-sm" : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      }`}>
+                      <div className="text-xl mb-1">{opt.icon}</div>
+                      {opt.lbl}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {form.city && (
-                <div>
-                  <label className="block text-[11px] text-gray-500 mb-2">نطاق الاستهداف الجغرافي</label>
-                  <div className="flex gap-2 mb-3">
-                    {[
-                      { val: "districts", lbl: "أحياء محددة", icon: "📍" },
-                      { val: "full_city", lbl: "المدينة كاملة", icon: "🏙️" },
-                      { val: "full_ksa", lbl: "المملكة كاملة", icon: "🇸🇦" },
-                    ].map(opt => (
-                      <button key={opt.val}
-                        onClick={() => {
-                          update("targetScope", opt.val);
-                          if (opt.val === "full_city") update("targetAreas", [`${form.city} — كاملة`]);
-                          if (opt.val === "full_ksa") update("targetAreas", ["المملكة العربية السعودية — كاملة"]);
-                          if (opt.val === "districts") update("targetAreas", []);
-                        }}
-                        className={`flex-1 py-2 px-2 rounded-lg text-[11px] border text-center transition-colors ${
-                          form.targetScope === opt.val ? "bg-primary-light border-blue-300 text-primary-500 font-medium" : "border-gray-200 text-gray-600 hover:border-gray-300"
-                        }`}>
-                        {opt.icon} {opt.lbl}
-                      </button>
-                    ))}
-                  </div>
+              {/* المملكة كاملة */}
+              {form.targetScope === "full_ksa" && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
+                  🇸🇦 سيتم استهداف جميع مناطق <strong>المملكة العربية السعودية</strong>
+                </div>
+              )}
 
-                  {form.targetScope === "districts" && (
-                    <DistrictSelector city={form.city} selected={form.targetAreas}
-                      onChange={areas => { update("targetAreas", areas); if (areas.length > 0 && !form.neighborhood) update("neighborhood", areas[0]); }} />
-                  )}
-                  {form.targetScope === "full_city" && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
-                      🏙️ سيتم استهداف جميع أحياء <strong>{form.city}</strong>
-                    </div>
-                  )}
-                  {form.targetScope === "full_ksa" && (
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
-                      🇸🇦 سيتم استهداف جميع مناطق <strong>المملكة العربية السعودية</strong>
-                    </div>
-                  )}
+              {/* البحث عن المدينة — فقط إذا اختار أحياء أو مدينة كاملة */}
+              {(form.targetScope === "districts" || form.targetScope === "full_city") && (
+                <div>
+                  <label className="block text-[11px] text-gray-500 mb-1">المدينة <span className="text-red-500">*</span></label>
+                  <CitySearch value={form.city} onChange={city => { update("city", city); update("targetAreas", []); update("neighborhood", ""); }} />
+                </div>
+              )}
+
+              {/* الأحياء — فقط إذا اختار أحياء محددة وحدد المدينة */}
+              {form.targetScope === "districts" && form.city && form.city !== "المملكة العربية السعودية" && (
+                <DistrictSelector city={form.city} selected={form.targetAreas}
+                  onChange={areas => { update("targetAreas", areas); if (areas.length > 0 && !form.neighborhood) update("neighborhood", areas[0]); }} />
+              )}
+
+              {/* مدينة كاملة */}
+              {form.targetScope === "full_city" && form.city && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
+                  🏙️ سيتم استهداف جميع أحياء <strong>{form.city}</strong>
                 </div>
               )}
 
