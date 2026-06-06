@@ -18,16 +18,19 @@ interface Strategy {
   phases: Array<{ title: string; description: string; duration: string }>;
   recommendations: Array<{ text: string; priority: string }>;
   audienceAnalysis: { segments: string[]; areas: string[]; interests: string[] };
+  competitorInsights?: {
+    mainWeaknesses: string[];
+    ourAdvantage: string;
+    marketGap: string;
+  };
 }
 
-interface StrategyPageProps {
-  params: { id: string };
-}
+interface StrategyPageProps { params: { id: string }; }
 
 const GEN_STEPS = [
   { id: 1, label: "تحليل بيانات العميل", icon: <Users size={14} />, duration: 600 },
   { id: 2, label: "دراسة السوق السعودي", icon: <Map size={14} />, duration: 600 },
-  { id: 3, label: "تحليل المنافسين", icon: <Target size={14} />, duration: 600 },
+  { id: 3, label: "بحث وتحليل المنافسين على الإنترنت", icon: <Target size={14} />, duration: 8000 },
   { id: 4, label: "توليد الاستراتيجية بـ Claude AI", icon: <Brain size={14} />, duration: 8000 },
   { id: 5, label: "حساب مؤشرات الأداء (KPIs)", icon: <TrendingUp size={14} />, duration: 600 },
   { id: 6, label: "إعداد خطة التنفيذ", icon: <CheckCircle size={14} />, duration: 600 },
@@ -53,22 +56,13 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
   const [approving, setApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // جلب بيانات العميل أولاً
   useEffect(() => {
     async function fetchClientAndGenerate() {
       try {
-        const { data, error: err } = await supabase
-          .from("clients")
-          .select("*")
-          .eq("id", params.id)
-          .single();
-
+        const { data, error: err } = await supabase.from("clients").select("*").eq("id", params.id).single();
         if (err || !data) throw new Error("لم يتم العثور على العميل");
-
         setClientData(data);
         setClientName(String(data.name || "العميل"));
-
-        // ابدأ التوليد بعد جلب البيانات
         await generateStrategy(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "حدث خطأ");
@@ -86,86 +80,47 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
     setApproved(false);
     setError(null);
 
-    // خطوات 1-3 (تمهيدية)
-    for (let i = 0; i < 3; i++) {
+    // خطوات 1-2 تمهيدية
+    for (let i = 0; i < 2; i++) {
       setCurrentStep(i);
       await new Promise(r => setTimeout(r, GEN_STEPS[i].duration));
       setCompletedSteps(prev => [...prev, i]);
     }
 
-    // خطوة 4 — Claude API الحقيقي
-    setCurrentStep(3);
+    // خطوة 3 — بحث المنافسين (يتم مع الـ API)
+    setCurrentStep(2);
 
     try {
-      const prompt = `أنت خبير تسويق رقمي متخصص في السوق السعودي. بناءً على بيانات العميل التالية، ولّد استراتيجية تسويقية شاملة.
-
-بيانات العميل:
-- الاسم: ${data.name}
-- القطاع: ${data.sector}
-- المدينة: ${data.city} - حي ${data.neighborhood}
-- الميزانية الشهرية: ${data.budget_monthly} ريال
-- المنصات: ${(data.platforms as string[] || []).join(', ')}
-- الأهداف: ${(data.goals as string[] || []).join(', ')}
-- الفئة العمرية: ${data.target_age}
-- الجنس المستهدف: ${data.target_gender}
-- الأحياء المستهدفة: ${(data.target_areas as string[] || []).join(', ')}
-- لغة المحتوى: ${data.content_language}
-- المنافسون: ${(data.competitors as string[] || []).join(', ')}
-- ملاحظات: ${data.description || 'لا يوجد'}
-
-أجب بـ JSON فقط بالشكل التالي (بدون أي نص آخر):
-{
-  "summary": "ملخص الاستراتيجية بالعربي (3-4 جمل)",
-  "kpis": {
-    "orders": 40,
-    "roi": 3.5,
-    "cpo": 15,
-    "impressions": 300000
-  },
-  "peakTimes": {
-    "الجمعة": ["11:00 ص", "2:00 م", "9:00 م"],
-    "السبت": ["12:00 م", "7:00 م"]
-  },
-  "phases": [
-    {"title": "...", "description": "...", "duration": "الأسبوع 1-2"},
-    {"title": "...", "description": "...", "duration": "الأسبوع 3-6"},
-    {"title": "...", "description": "...", "duration": "الشهر 2"},
-    {"title": "...", "description": "...", "duration": "الشهر 3"}
-  ],
-  "recommendations": [
-    {"text": "...", "priority": "urgent"},
-    {"text": "...", "priority": "urgent"},
-    {"text": "...", "priority": "medium"},
-    {"text": "...", "priority": "medium"},
-    {"text": "...", "priority": "planning"}
-  ],
-  "audienceAnalysis": {
-    "segments": ["..."],
-    "areas": ["..."],
-    "interests": ["..."]
-  }
-}`;
-
       const response = await fetch("/api/ai/strategy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientData: { name: data.name, sector: data.sector, city: data.city, neighborhood: data.neighborhood, targetAreas: data.target_areas, targetAge: data.target_age, targetGender: data.target_gender, interests: data.interests, platforms: data.platforms, goals: data.goals, budgetMonthly: data.budget_monthly, description: data.description, seoKeywords: data.seo_keywords, competitors: data.competitors } }),
+        body: JSON.stringify({
+          clientData: {
+            name: data.name, sector: data.sector, city: data.city,
+            neighborhood: data.neighborhood, targetAreas: data.target_areas,
+            targetAge: data.target_age, targetGender: data.target_gender,
+            interests: data.interests, platforms: data.platforms, goals: data.goals,
+            budgetMonthly: data.budget_monthly, description: data.description,
+            seoKeywords: data.seo_keywords, competitors: data.competitors,
+            websiteUrl: data.website_url, instagramUrl: data.instagram_url,
+            contentLanguage: data.content_language, seoLevel: data.seo_level,
+          }
+        }),
       });
 
       if (!response.ok) throw new Error("فشل استدعاء Claude API");
-
       const result = await response.json();
-      let parsedStrategy: Strategy;
 
-      try {
-        if (result.strategy) {
-          parsedStrategy = result.strategy;
-        } else {
-          const text = result.content || "";
-          const clean = text.replace(/```json|```/g, "").trim();
-          parsedStrategy = JSON.parse(clean);
-        }
-      } catch {
+      setCompletedSteps(prev => [...prev, 2]);
+
+      // خطوة 4
+      setCurrentStep(3);
+      await new Promise(r => setTimeout(r, 800));
+
+      let parsedStrategy: Strategy;
+      if (result.strategy) {
+        parsedStrategy = result.strategy;
+      } else {
         throw new Error("فشل تحليل استجابة الذكاء الاصطناعي");
       }
 
@@ -189,26 +144,23 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
     }
   }
 
-  // حفظ الاستراتيجية في Supabase
   async function handleApprove() {
     if (!strategy) return;
     setApproving(true);
     try {
-      const { error: err } = await supabase
-        .from("strategies")
-        .upsert({
-          client_id: params.id,
-          summary: strategy.summary,
-          kpi_orders_target: strategy.kpis.orders,
-          kpi_roi_target: strategy.kpis.roi,
-          kpi_cpo_target: strategy.kpis.cpo,
-          kpi_impressions_target: strategy.kpis.impressions,
-          peak_times: strategy.peakTimes,
-          phases: strategy.phases,
-          ai_recommendations: strategy.recommendations,
-          version: 1,
-        }, { onConflict: "client_id" });
-
+      const { error: err } = await supabase.from("strategies").upsert({
+        client_id: params.id,
+        summary: strategy.summary,
+        kpi_orders_target: strategy.kpis.orders,
+        kpi_roi_target: strategy.kpis.roi,
+        kpi_cpo_target: strategy.kpis.cpo,
+        kpi_impressions_target: strategy.kpis.impressions,
+        peak_times: strategy.peakTimes,
+        phases: strategy.phases,
+        ai_recommendations: strategy.recommendations,
+        competitor_insights: strategy.competitorInsights || null,
+        version: 1,
+      }, { onConflict: "client_id" });
       if (err) throw err;
       setApproved(true);
     } catch (err) {
@@ -220,11 +172,7 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
-      <TopNav
-        currentClient={{ id: params.id, name: clientName }}
-        alertCount={0}
-        user={{ name: "عمر", email: "omar@markiq.sa", role: "admin" }}
-      />
+      <TopNav currentClient={{ id: params.id, name: clientName }} alertCount={0} user={{ name: "عمر", email: "omar@markiq.sa", role: "admin" }} />
       <Breadcrumb items={[
         { label: "لوحة التحكم", href: "/dashboard" },
         { label: "العملاء", href: "/clients" },
@@ -234,37 +182,27 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
 
       <div className="max-w-[900px] mx-auto p-4 space-y-5">
 
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-              <Brain size={18} className="text-primary-500" />
-              توليد الاستراتيجية التسويقية
+              <Brain size={18} className="text-primary-500" /> توليد الاستراتيجية التسويقية
             </h1>
-            <p className="text-xs text-gray-500 mt-1">Claude AI يحلل بيانات {clientName} ويبني خطة تسويقية متكاملة</p>
+            <p className="text-xs text-gray-500 mt-1">Claude AI يحلل بيانات {clientName} ويبحث عن المنافسين ويبني خطة تسويقية متكاملة</p>
           </div>
           {!generating && strategy && (
             <div className="flex gap-2">
-              <Button variant="outline" icon={<RefreshCw size={11} />} onClick={() => clientData && generateStrategy(clientData)}>
-                إعادة التوليد
-              </Button>
+              <Button variant="outline" icon={<RefreshCw size={11} />} onClick={() => clientData && generateStrategy(clientData)}>إعادة التوليد</Button>
               {!approved ? (
-                <Button
-                  icon={approving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
-                  onClick={handleApprove}
-                >
+                <Button icon={approving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />} onClick={handleApprove}>
                   {approving ? "جارٍ الاعتماد..." : "اعتماد الاستراتيجية"}
                 </Button>
               ) : (
-                <Button icon={<ChevronRight size={11} className="rotate-180" />} onClick={() => router.push(`/clients/${params.id}`)}>
-                  انتقل للملف
-                </Button>
+                <Button icon={<ChevronRight size={11} className="rotate-180" />} onClick={() => router.push(`/clients/${params.id}`)}>انتقل للملف</Button>
               )}
             </div>
           )}
         </div>
 
-        {/* Error */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
             {error}
@@ -272,7 +210,6 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
           </div>
         )}
 
-        {/* Generation Progress */}
         {generating && (
           <Card>
             <div className="flex items-center gap-2 mb-5">
@@ -281,7 +218,7 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               </div>
               <div>
                 <div className="text-sm font-semibold text-gray-800">Claude AI يعمل...</div>
-                <div className="text-[10px] text-gray-500">يُرجى الانتظار، يتم توليد الاستراتيجية</div>
+                <div className="text-[10px] text-gray-500">يتم البحث عن المنافسين وتوليد الاستراتيجية</div>
               </div>
             </div>
             <div className="space-y-3">
@@ -289,21 +226,11 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
                 const isDone = completedSteps.includes(i);
                 const isActive = currentStep === i && !isDone;
                 return (
-                  <div key={step.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
-                    isDone ? "bg-green-50 border-green-200" :
-                    isActive ? "bg-primary-light border-blue-200" :
-                    "bg-gray-50 border-gray-100"
-                  }`}>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      isDone ? "bg-green-500" : isActive ? "bg-primary-500" : "bg-gray-200"
-                    }`}>
-                      {isDone ? <CheckCircle size={14} className="text-white" /> :
-                       isActive ? <Loader2 size={14} className="text-white animate-spin" /> :
-                       <div className="text-[10px] text-gray-400 font-bold">{step.id}</div>}
+                  <div key={step.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${isDone ? "bg-green-50 border-green-200" : isActive ? "bg-primary-light border-blue-200" : "bg-gray-50 border-gray-100"}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${isDone ? "bg-green-500" : isActive ? "bg-primary-500" : "bg-gray-200"}`}>
+                      {isDone ? <CheckCircle size={14} className="text-white" /> : isActive ? <Loader2 size={14} className="text-white animate-spin" /> : <div className="text-[10px] text-gray-400 font-bold">{step.id}</div>}
                     </div>
-                    <div className={`text-xs ${isDone ? "text-green-700" : isActive ? "text-primary-500 font-medium" : "text-gray-400"}`}>
-                      {step.label}
-                    </div>
+                    <div className={`text-xs ${isDone ? "text-green-700" : isActive ? "text-primary-500 font-medium" : "text-gray-400"}`}>{step.label}</div>
                     {isDone && <div className="mr-auto text-[10px] text-green-500">✓ مكتمل</div>}
                     {isActive && <div className="mr-auto text-[10px] text-primary-400 animate-pulse">جارٍ التحليل...</div>}
                   </div>
@@ -311,16 +238,12 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               })}
             </div>
             <div className="mt-4 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-              <div className="h-full bg-primary-500 rounded-full transition-all duration-500"
-                style={{ width: `${(completedSteps.length / GEN_STEPS.length) * 100}%` }} />
+              <div className="h-full bg-primary-500 rounded-full transition-all duration-500" style={{ width: `${(completedSteps.length / GEN_STEPS.length) * 100}%` }} />
             </div>
-            <div className="text-center text-[10px] text-gray-400 mt-1.5">
-              {completedSteps.length} / {GEN_STEPS.length} خطوات مكتملة
-            </div>
+            <div className="text-center text-[10px] text-gray-400 mt-1.5">{completedSteps.length} / {GEN_STEPS.length} خطوات مكتملة</div>
           </Card>
         )}
 
-        {/* Strategy Result */}
         {!generating && strategy && (
           <>
             <div className={`flex items-center gap-3 p-3 rounded-xl border ${approved ? "bg-green-50 border-green-200" : "bg-primary-light border-blue-200"}`}>
@@ -336,9 +259,7 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
             </div>
 
             <div className="bg-primary-light border border-blue-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-primary-500 mb-2">
-                <Brain size={15} /> ملخص الاستراتيجية
-              </div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-primary-500 mb-2"><Brain size={15} /> ملخص الاستراتيجية</div>
               <p className="text-xs text-blue-700 leading-relaxed">{strategy.summary}</p>
             </div>
 
@@ -361,6 +282,31 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               </div>
             </Card>
 
+            {/* تحليل المنافسين الحقيقي */}
+            {strategy.competitorInsights && (
+              <Card>
+                <CardHeader title="تحليل المنافسين — بحث حقيقي" icon={<Target size={14} />} />
+                <div className="space-y-3">
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                    <div className="text-[11px] font-medium text-red-700 mb-2">⚠️ نقاط ضعف المنافسين:</div>
+                    <div className="space-y-1">
+                      {strategy.competitorInsights.mainWeaknesses.map((w, i) => (
+                        <div key={i} className="text-[10.5px] text-red-600 flex gap-1.5"><span>•</span>{w}</div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                    <div className="text-[11px] font-medium text-green-700 mb-1">✅ ميزتنا التنافسية:</div>
+                    <div className="text-[10.5px] text-green-600">{strategy.competitorInsights.ourAdvantage}</div>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                    <div className="text-[11px] font-medium text-blue-700 mb-1">🎯 الفجوة في السوق:</div>
+                    <div className="text-[10.5px] text-blue-600">{strategy.competitorInsights.marketGap}</div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <Card>
                 <CardHeader title="تحليل الجمهور" icon={<Users size={14} />} />
@@ -379,7 +325,6 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
                   </div>
                 ))}
               </Card>
-
               <Card>
                 <CardHeader title="أوقات الذروة للنشر" icon={<Clock size={14} />} />
                 {Object.entries(strategy.peakTimes).map(([day, times], i) => (
@@ -400,9 +345,7 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
               <div className="grid grid-cols-4 gap-3">
                 {strategy.phases.map((phase, i) => (
                   <div key={i} className="flex flex-col items-center text-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-2 ${
-                      i === 0 ? "bg-green-500 text-white" : i === 1 ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-400 border border-gray-200"
-                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-2 ${i === 0 ? "bg-green-500 text-white" : i === 1 ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-400 border border-gray-200"}`}>
                       {i === 0 ? "✓" : i + 1}
                     </div>
                     <div className="text-xs font-medium text-gray-800 mb-1">{phase.title}</div>
@@ -426,9 +369,7 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
                       <div className="flex-1 min-w-0">
                         <div className="text-[11.5px] text-gray-700 leading-relaxed">{rec.text}</div>
                       </div>
-                      <span className={`text-[9px] px-2 py-0.5 rounded-full h-fit flex-shrink-0 ${config.bg} ${config.color} font-medium`}>
-                        {config.label}
-                      </span>
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full h-fit flex-shrink-0 ${config.bg} ${config.color} font-medium`}>{config.label}</span>
                     </div>
                   );
                 })}
@@ -438,17 +379,13 @@ export default function StrategyGenerationPage({ params }: StrategyPageProps) {
             <div className="flex items-center justify-between py-2">
               <Button variant="outline" onClick={() => router.back()}>العودة</Button>
               <div className="flex gap-2">
-                <Button variant="outline" icon={<RefreshCw size={11} />} onClick={() => clientData && generateStrategy(clientData)}>
-                  إعادة التوليد
-                </Button>
+                <Button variant="outline" icon={<RefreshCw size={11} />} onClick={() => clientData && generateStrategy(clientData)}>إعادة التوليد</Button>
                 {!approved ? (
                   <Button icon={approving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />} onClick={handleApprove}>
                     {approving ? "جارٍ الاعتماد..." : "اعتماد الاستراتيجية"}
                   </Button>
                 ) : (
-                  <Button icon={<ChevronRight size={11} className="rotate-180" />} onClick={() => router.push(`/clients/${params.id}`)}>
-                    إنشاء أول حملة
-                  </Button>
+                  <Button icon={<ChevronRight size={11} className="rotate-180" />} onClick={() => router.push(`/clients/${params.id}`)}>إنشاء أول حملة</Button>
                 )}
               </div>
             </div>
