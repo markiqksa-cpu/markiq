@@ -80,6 +80,7 @@ const STEPS = [
 interface FormData {
   name: string; nameEn: string; sector: string;
   activityDescription: string;
+targetScope: string;
   website: string; instagram: string; budgetMonthly: number;
   city: string; neighborhood: string; targetAreas: string[];
   targetAge: string; targetGender: "all" | "male" | "female";
@@ -90,6 +91,7 @@ interface FormData {
 
 const INITIAL_DATA: FormData = {
   name: "", nameEn: "", sector: "", activityDescription: "",
+targetScope: "districts",
   website: "", instagram: "", budgetMonthly: 5000,
   city: "", neighborhood: "", targetAreas: [],
   targetAge: "25-34", targetGender: "all", interests: [],
