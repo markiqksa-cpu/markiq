@@ -136,7 +136,7 @@ function CampaignBuilderContent() {
   }
 
   // توليد الصورة لمنشور محدد
-  async function generateImage(index: number) {
+  async function generateImage(index: number, userImage?: string) {
     const c = generatedContent[index];
     if (!c) return;
 
@@ -145,28 +145,22 @@ function CampaignBuilderContent() {
     ));
 
     try {
-      const sectorPrompts: Record<string, string> = {
-        restaurants: "delicious food photography, restaurant dish, appetizing",
-        salons: "beauty salon, hair styling, elegant",
-        clinics: "healthcare, medical professional, clean clinic",
-        retail: "retail products, shopping, modern store",
-        ecommerce: "online shopping, products display, modern",
-        education: "education, learning, students",
-        real_estate: "real estate, modern building, luxury property",
-        other: "professional business, modern office",
-      };
-
-      const sector = String(clientData?.sector || "other");
-      const sectorContext = sectorPrompts[sector] || sectorPrompts.other;
-
       const response = await fetch("/api/ai/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: `${sectorContext}, ${form.goal}, ${form.name}, professional Saudi Arabian market`,
           platform: c.platform,
           clientName,
-          style: "modern professional Arabic market style",
+          clientData: {
+            sector: clientData?.sector,
+            city: clientData?.city,
+            neighborhood: clientData?.neighborhood,
+            targetAge: clientData?.target_age,
+            targetGender: clientData?.target_gender,
+          },
+          campaignGoal: form.goal,
+          campaignName: form.name,
+          userImage: userImage || null,
         }),
       });
 
@@ -181,6 +175,16 @@ function CampaignBuilderContent() {
         i === index ? { ...item, imageLoading: false } : item
       ));
     }
+  }
+
+  // رفع صورة العميل
+  async function handleImageUpload(index: number, file: File) {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      await generateImage(index, base64);
+    };
+    reader.readAsDataURL(file);
   }
 
   // توليد المحتوى النصي
@@ -501,26 +505,40 @@ function CampaignBuilderContent() {
                         <div className="relative">
                           <img src={c.imageUrl} alt={`صورة ${p?.label}`}
                             className="w-full h-48 object-cover" />
-                          <button onClick={() => generateImage(i)}
-                            className="absolute top-2 left-2 bg-white/90 text-[10px] text-gray-600 px-2 py-1 rounded-lg border border-gray-200 hover:bg-white flex items-center gap-1">
-                            <Image size={11} /> تجديد
-                          </button>
+                          <div className="absolute top-2 left-2 flex gap-1">
+                            <button onClick={() => generateImage(i)}
+                              className="bg-white/90 text-[10px] text-gray-600 px-2 py-1 rounded-lg border border-gray-200 hover:bg-white flex items-center gap-1">
+                              <Sparkles size={10} /> تجديد
+                            </button>
+                            <label className="bg-white/90 text-[10px] text-gray-600 px-2 py-1 rounded-lg border border-gray-200 hover:bg-white flex items-center gap-1 cursor-pointer">
+                              <Image size={10} /> استبدال
+                              <input type="file" accept="image/*" className="hidden"
+                                onChange={e => e.target.files?.[0] && handleImageUpload(i, e.target.files[0])} />
+                            </label>
+                          </div>
                         </div>
                       ) : (
-                        <div className="mx-3 mt-3 border-2 border-dashed border-gray-200 rounded-xl h-32 flex flex-col items-center justify-center gap-2 bg-gray-50">
+                        <div className="mx-3 mt-3 border-2 border-dashed border-gray-200 rounded-xl h-36 flex flex-col items-center justify-center gap-2 bg-gray-50">
                           {c.imageLoading ? (
                             <>
                               <Loader2 size={20} className="animate-spin text-primary-500" />
-                              <div className="text-[10px] text-gray-400">DALL-E 3 يولد الصورة...</div>
+                              <div className="text-[10px] text-gray-400">gpt-image يولد الصورة...</div>
                             </>
                           ) : (
                             <>
                               <Image size={20} className="text-gray-300" />
                               <div className="text-[10px] text-gray-400 mb-1">لا توجد صورة بعد</div>
-                              <button onClick={() => generateImage(i)}
-                                className="text-[10px] bg-primary-500 text-white px-3 py-1.5 rounded-lg hover:bg-primary-600 flex items-center gap-1">
-                                <Sparkles size={10} /> توليد صورة بـ DALL-E 3
-                              </button>
+                              <div className="flex gap-2">
+                                <button onClick={() => generateImage(i)}
+                                  className="text-[10px] bg-primary-500 text-white px-3 py-1.5 rounded-lg hover:bg-primary-600 flex items-center gap-1">
+                                  <Sparkles size={10} /> توليد بـ AI
+                                </button>
+                                <label className="text-[10px] bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-200 flex items-center gap-1 cursor-pointer">
+                                  <Image size={10} /> رفع صورة
+                                  <input type="file" accept="image/*" className="hidden"
+                                    onChange={e => e.target.files?.[0] && handleImageUpload(i, e.target.files[0])} />
+                                </label>
+                              </div>
                             </>
                           )}
                         </div>
