@@ -1,6 +1,48 @@
 // app/api/ai/strategy/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
+// ===== بحث حقيقي عن المنافسين =====
+async function searchCompetitor(name: string, city: string, sector: string): Promise<string> {
+  try {
+    const query = `${name} ${city} ${sector} تقييمات خدمات`;
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY!,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-5",
+        max_tokens: 1000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [{
+          role: "user",
+          content: `ابحث عن "${query}" وأعطني معلومات مختصرة عن:
+1. نوع الخدمات التي يقدمها
+2. مستوى التقييمات (إن وجدت)
+3. نقاط القوة والضعف الظاهرة
+4. تواجده على وسائل التواصل الاجتماعي
+
+أجب باختصار شديد في 3-4 جمل فقط بالعربية.`
+        }],
+      }),
+    });
+
+    if (!response.ok) return `${name}: معلومات غير متاحة`;
+
+    const data = await response.json();
+    const text = data.content
+      ?.filter((c: { type: string }) => c.type === "text")
+      ?.map((c: { text: string }) => c.text)
+      ?.join(" ") || "";
+
+    return `${name}: ${text.slice(0, 300)}`;
+  } catch {
+    return `${name}: تعذّر جلب المعلومات`;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -10,53 +52,62 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "بيانات العميل مطلوبة" }, { status: 400 });
     }
 
-    const systemPrompt = `أنت كبير مستشاري التسويق الرقمي في السوق السعودي، خبرتك تتجاوز 15 سنة.
-تخصصك: بناء استراتيجيات تسويقية مبنية على البيانات تحقق نتائج قابلة للقياس.
-
-مبادئك الأساسية:
-- الأرقام والأهداف يجب أن تكون واقعية ومبنية على الميزانية الفعلية
-- كل توصية يجب أن تكون محددة وقابلة للتنفيذ فوراً
-- السياق السعودي أولاً: اللهجة، المناسبات، أوقات الذروة، وسلوك المستهلك السعودي
-- لا توصيات عامة — كل شيء مخصص لهذا العميل بالذات
-- ردودك دائماً بـ JSON صالح فقط، بدون أي نص إضافي أو markdown أو backticks`;
-
     const budgetMonthly = clientData.budgetMonthly || 5000;
     const platforms = (clientData.platforms || []).join("، ");
     const goals = (clientData.goals || []).join("، ");
     const targetAreas = (clientData.targetAreas || []).join("، ");
     const interests = (clientData.interests || []).join("، ");
-    const competitors = (clientData.competitors || []).join("، ");
+    const competitors = (clientData.competitors || []) as string[];
     const seoKeywords = (clientData.seoKeywords || []).join("، ");
     const seoLevel = clientData.seoLevel || "none";
     const contentLanguage = clientData.contentLanguage || "arabic_saudi";
 
-    // حساب توزيع الميزانية المقترح
+    // ===== بحث حقيقي عن المنافسين =====
+    let competitorAnalysis = "لم يُذكر منافسون";
+    if (competitors.length > 0) {
+      const searchPromises = competitors.slice(0, 3).map(c =>
+        searchCompetitor(c, clientData.city || "", clientData.sector || "")
+      );
+      const results = await Promise.all(searchPromises);
+      competitorAnalysis = results.join("\n");
+    }
+
+    // حساب توزيع الميزانية
     const platformList = clientData.platforms || [];
+    const weights: Record<string, number> = {
+      google: 35, instagram: 30, snapchat: 20, tiktok: 15,
+      twitter: 10, facebook: 15, youtube: 10, maps: 5,
+    };
+    const totalWeight = platformList.reduce((s: number, p: string) => s + (weights[p] || 15), 0);
     const budgetSuggestions = platformList.map((p: string) => {
-      const weights: Record<string, number> = {
-        google: 35, instagram: 30, snapchat: 20, tiktok: 15,
-        twitter: 10, facebook: 15, youtube: 10, maps: 5,
-      };
-      const weight = weights[p] || 15;
-      const totalWeight = platformList.reduce((s: number, pl: string) => s + (weights[pl] || 15), 0);
-      const amount = Math.round((weight / totalWeight) * budgetMonthly);
+      const amount = Math.round(((weights[p] || 15) / totalWeight) * budgetMonthly);
       return `${p}: ${amount} ريال`;
     }).join("، ");
+
+    const systemPrompt = `أنت كبير مستشاري التسويق الرقمي في السوق السعودي، خبرتك تتجاوز 15 سنة.
+تخصصك: بناء استراتيجيات تسويقية مبنية على البيانات والتحليل الحقيقي للسوق.
+
+مبادئك:
+- الأرقام واقعية ومبنية على الميزانية الفعلية
+- التحليل مبني على معلومات المنافسين الحقيقية المُقدَّمة
+- السياق السعودي أولاً
+- لا توصيات عامة — كل شيء مخصص لهذا العميل
+- ردودك JSON فقط بدون أي نص إضافي`;
 
     const userPrompt = `بيانات العميل الكاملة:
 
 ═══════════════════════════════
-معلومات النشاط التجاري:
+معلومات النشاط:
 ═══════════════════════════════
 الاسم: ${clientData.name}
 القطاع: ${clientData.sector}
-الوصف: ${clientData.description || "لم يُذكر"}
-الموقع: ${clientData.city}، حي ${clientData.neighborhood}
+الوصف التفصيلي: ${clientData.description || "لم يُذكر"}
+الموقع: ${clientData.city}، ${clientData.neighborhood || ""}
 الأحياء المستهدفة: ${targetAreas || "غير محدد"}
 الموقع الإلكتروني: ${clientData.websiteUrl || "لا يوجد"}
 انستقرام: ${clientData.instagramUrl || "لا يوجد"}
-مستوى SEO الحالي: ${seoLevel}
-كلمات SEO المستهدفة: ${seoKeywords || "لم تُحدد"}
+مستوى SEO: ${seoLevel}
+كلمات SEO: ${seoKeywords || "لم تُحدد"}
 
 ═══════════════════════════════
 الجمهور المستهدف:
@@ -70,37 +121,39 @@ export async function POST(req: NextRequest) {
 التسويق والميزانية:
 ═══════════════════════════════
 الميزانية الشهرية: ${budgetMonthly} ريال
-المنصات المختارة: ${platforms}
-التوزيع المقترح للميزانية: ${budgetSuggestions}
-الأهداف التسويقية: ${goals}
-المنافسون: ${competitors || "لم يُذكروا"}
-ملاحظات إضافية: ${clientData.aiNotes || clientData.description || "لا توجد"}
+المنصات: ${platforms}
+التوزيع المقترح: ${budgetSuggestions}
+الأهداف: ${goals}
+
+═══════════════════════════════
+تحليل المنافسين (بحث حقيقي):
+═══════════════════════════════
+${competitorAnalysis}
 
 ═══════════════════════════════
 المطلوب:
 ═══════════════════════════════
 بناء استراتيجية تسويقية متكاملة تأخذ بعين الاعتبار:
-1. الميزانية المحدودة (${budgetMonthly} ريال) — الأولوية للمنصات الأعلى عائداً
-2. السياق السعودي المحلي والمناسبات الموسمية
-3. المنافسة في السوق وطرق التميز
-4. مؤشرات KPI واقعية تتناسب مع الميزانية والقطاع
-5. خطة تنفيذ واضحة خطوة بخطوة
+1. الميزانية الفعلية (${budgetMonthly} ريال)
+2. تحليل المنافسين الحقيقي أعلاه — استخدمه لتحديد نقاط التميز
+3. السياق السعودي والمناسبات الموسمية
+4. KPIs واقعية للميزانية والقطاع
 
-أرجع JSON بهذا الشكل بالضبط (أرقام KPIs يجب أن تكون واقعية للميزانية):
+أرجع JSON بهذا الشكل بالضبط:
 {
-  "summary": "ملخص تنفيذي للاستراتيجية (4-5 جمل تغطي: الهدف، الجمهور، الأسلوب، التوقع)",
+  "summary": "ملخص تنفيذي (4-5 جمل: الهدف، الجمهور، التميز عن المنافسين، التوقع)",
+  "competitorInsights": {
+    "mainWeaknesses": ["نقطة ضعف منافس 1", "نقطة ضعف منافس 2"],
+    "ourAdvantage": "كيف يتميز عميلنا عن المنافسين بناءً على التحليل",
+    "marketGap": "الفجوة في السوق التي يمكن استغلالها"
+  },
   "kpis": {
     "orders": 25,
     "roi": 2.8,
     "cpo": 15,
     "impressions": 180000
   },
-  "budgetDistribution": {
-    "instagram": 1500,
-    "google": 2000,
-    "snapchat": 1000,
-    "tiktok": 500
-  },
+  "budgetDistribution": {},
   "peakTimes": {
     "الجمعة": ["11:00 ص", "2:00 م", "9:00 م"],
     "السبت": ["12:00 م", "7:00 م"],
@@ -108,37 +161,37 @@ export async function POST(req: NextRequest) {
   },
   "avoidTimes": ["الفجر", "الظهر", "العصر", "المغرب", "العشاء"],
   "contentStrategy": {
-    "tone": "وصف الأسلوب المناسب للجمهور",
+    "tone": "وصف الأسلوب",
     "themes": ["موضوع 1", "موضوع 2", "موضوع 3"],
-    "frequency": "معدل النشر الموصى به",
-    "formats": ["نوع محتوى 1", "نوع محتوى 2"]
+    "frequency": "معدل النشر",
+    "formats": ["نوع 1", "نوع 2"]
   },
   "phases": [
-    { "title": "إعداد الأساس", "description": "تفاصيل محددة للتنفيذ", "duration": "الأسبوع 1-2", "actions": ["إجراء 1", "إجراء 2"] },
-    { "title": "الإطلاق التجريبي", "description": "تفاصيل محددة", "duration": "الأسبوع 3-6", "actions": ["إجراء 1", "إجراء 2"] },
-    { "title": "التحسين والتوسع", "description": "تفاصيل محددة", "duration": "الشهر الثاني", "actions": ["إجراء 1", "إجراء 2"] },
-    { "title": "قياس النتائج", "description": "تفاصيل محددة", "duration": "الشهر الثالث", "actions": ["إجراء 1", "إجراء 2"] }
+    { "title": "إعداد الأساس", "description": "تفاصيل", "duration": "الأسبوع 1-2", "actions": ["إجراء 1", "إجراء 2"] },
+    { "title": "الإطلاق التجريبي", "description": "تفاصيل", "duration": "الأسبوع 3-6", "actions": ["إجراء 1", "إجراء 2"] },
+    { "title": "التحسين والتوسع", "description": "تفاصيل", "duration": "الشهر الثاني", "actions": ["إجراء 1", "إجراء 2"] },
+    { "title": "قياس النتائج", "description": "تفاصيل", "duration": "الشهر الثالث", "actions": ["إجراء 1", "إجراء 2"] }
   ],
   "recommendations": [
-    { "text": "توصية عاجلة ومحددة جداً مع رقم أو نسبة", "priority": "urgent", "platform": "google", "expectedImpact": "وصف الأثر المتوقع" },
-    { "text": "توصية متوسطة الأولوية محددة", "priority": "medium", "platform": "instagram", "expectedImpact": "وصف الأثر" },
-    { "text": "توصية متوسطة", "priority": "medium", "platform": "snapchat", "expectedImpact": "وصف الأثر" },
-    { "text": "توصية تخطيطية", "priority": "planning", "platform": "general", "expectedImpact": "وصف الأثر" },
-    { "text": "توصية تخطيطية أخرى", "priority": "planning", "platform": "general", "expectedImpact": "وصف الأثر" }
+    { "text": "توصية عاجلة محددة مبنية على تحليل المنافسين", "priority": "urgent", "platform": "google", "expectedImpact": "الأثر المتوقع" },
+    { "text": "توصية متوسطة", "priority": "medium", "platform": "instagram", "expectedImpact": "الأثر" },
+    { "text": "توصية متوسطة", "priority": "medium", "platform": "snapchat", "expectedImpact": "الأثر" },
+    { "text": "توصية تخطيطية", "priority": "planning", "platform": "general", "expectedImpact": "الأثر" },
+    { "text": "توصية تخطيطية", "priority": "planning", "platform": "general", "expectedImpact": "الأثر" }
   ],
   "audienceAnalysis": {
-    "segments": ["شريحة مفصلة 1", "شريحة مفصلة 2", "شريحة 3"],
-    "areas": ["${clientData.neighborhood || 'الحي الرئيسي'}", "حي مستهدف 2", "حي مستهدف 3"],
-    "interests": ["اهتمام محدد 1", "اهتمام محدد 2", "اهتمام محدد 3"],
-    "behaviors": ["سلوك شرائي 1", "سلوك شرائي 2"]
+    "segments": ["شريحة 1", "شريحة 2", "شريحة 3"],
+    "areas": ["حي 1", "حي 2"],
+    "interests": ["اهتمام 1", "اهتمام 2"],
+    "behaviors": ["سلوك 1", "سلوك 2"]
   },
   "seoStrategy": {
-    "priority": "high/medium/low حسب المستوى الحالي",
-    "quickWins": ["إجراء SEO سريع 1", "إجراء SEO سريع 2"],
-    "targetKeywords": ["كلمة مفتاحية 1", "كلمة مفتاحية 2"]
+    "priority": "high/medium/low",
+    "quickWins": ["إجراء 1", "إجراء 2"],
+    "targetKeywords": ["كلمة 1", "كلمة 2"]
   },
   "seasonalOpportunities": [
-    { "occasion": "مناسبة موسمية قريبة", "action": "إجراء مقترح", "timing": "التوقيت" }
+    { "occasion": "مناسبة", "action": "إجراء", "timing": "التوقيت" }
   ],
   "successMetrics": {
     "week1": "هدف الأسبوع الأول",
@@ -162,27 +215,21 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    if (!response.ok) {
-      throw new Error(`Claude API error: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
 
     const data = await response.json();
     const text = data.content[0]?.text || "";
-    
+
     let strategy;
     try {
       strategy = JSON.parse(text.replace(/```json|```/g, "").trim());
     } catch {
-      // محاولة ثانية — البحث عن JSON في النص
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        strategy = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("فشل تحليل استجابة الذكاء الاصطناعي");
-      }
+      if (jsonMatch) strategy = JSON.parse(jsonMatch[0]);
+      else throw new Error("فشل تحليل استجابة الذكاء الاصطناعي");
     }
 
-    return NextResponse.json({ strategy });
+    return NextResponse.json({ strategy, competitorAnalysis });
 
   } catch (error) {
     console.error("Strategy generation error:", error);
