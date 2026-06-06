@@ -44,7 +44,7 @@ Clean, professional, visually appealing for Saudi Arabian audience.`;
               platform === "snapchat" || platform === "tiktok" ? "1024x1792" : 
               "1792x1024",
         quality: "standard",
-        style: "natural",
+        
       }),
     });
 
