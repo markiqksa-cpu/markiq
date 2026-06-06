@@ -38,6 +38,20 @@ const PLATFORMS = [
   { id: "maps", label: "Google Maps", color: "#34A853" },
 ];
 
+const PlatformSVG = ({ id, active }: { id: string; active: boolean }) => {
+  const icons: Record<string, JSX.Element> = {
+    instagram: (<svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect width="24" height="24" rx="6" fill={active ? "#C13584" : "#E5E7EB"} /><rect x="6" y="6" width="12" height="12" rx="3.5" stroke="white" strokeWidth="1.5" fill="none" /><circle cx="12" cy="12" r="3" stroke="white" strokeWidth="1.5" fill="none" /><circle cx="16.2" cy="7.8" r="0.9" fill="white" /></svg>),
+    snapchat: (<svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect width="24" height="24" rx="6" fill={active ? "#FFFC00" : "#E5E7EB"} /><path d="M12 5c-2.5 0-4 1.8-4 4v1.5c-.5.2-1 .4-1.2.8-.2.4 0 .8.3 1 .4.1.8.2 1.2.2-.3.8-1 1.5-1.8 2 .5.2 1.5.4 2.5.2l.2.8c.6 0 1.2-.1 1.8-.3.6.2 1.2.3 1.8.3l.2-.8c1 .2 2-.1 2.5-.2-.8-.5-1.5-1.2-1.8-2 .4 0 .8-.1 1.2-.2.3-.2.5-.6.3-1-.2-.4-.7-.6-1.2-.8V9c0-2.2-1.5-4-4-4z" fill={active ? "#333" : "#9CA3AF"} /></svg>),
+    google: (<svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect width="24" height="24" rx="6" fill={active ? "white" : "#E5E7EB"} stroke={active ? "#E2E8F0" : "none"} /><path d="M19 12.2c0-.6-.1-1.2-.2-1.7H12v3.2h3.9c-.2.9-.7 1.7-1.5 2.2v1.8h2.4c1.4-1.3 2.2-3.2 2.2-5.5z" fill={active ? "#4285F4" : "#9CA3AF"} /><path d="M12 19c2 0 3.6-.6 4.8-1.7l-2.4-1.8c-.6.4-1.4.7-2.4.7-1.9 0-3.4-1.2-4-2.9H7.5v1.9C8.8 17.6 10.3 19 12 19z" fill={active ? "#34A853" : "#9CA3AF"} /><path d="M8 13.3c-.2-.6-.3-1.1-.3-1.7 0-.6.1-1.2.3-1.7V8H5.5C5 9 4.8 10.5 4.8 12c0 1.5.3 2.9.8 4.2L8 13.3z" fill={active ? "#FBBC05" : "#9CA3AF"} /><path d="M12 7.4c1.1 0 2 .4 2.7 1.1l2-2C15.6 5.4 14 4.8 12 4.8 10.3 4.8 8.8 6.2 7.5 8l2.5 1.9c.6-1.5 2.1-2.5 4-2.5z" fill={active ? "#EA4335" : "#9CA3AF"} /></svg>),
+    tiktok: (<svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect width="24" height="24" rx="6" fill={active ? "#010101" : "#E5E7EB"} /><path d="M16 7.5c.8 1 2 1.5 3 1.5v2.2c-.7 0-1.9-.3-2.7-.8v4.6c0 2.3-1.9 4.2-4.2 4.2a4.2 4.2 0 01-4.2-4.2 4.2 4.2 0 014.2-4.2c.2 0 .5 0 .7.1v2.3c-.2-.1-.5-.1-.7-.1a2 2 0 00-2 2 2 2 0 002 2 2 2 0 002-2V5h2.2c.1.9.7 2.1 1.7 2.5z" fill="white" /></svg>),
+    twitter: (<svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect width="24" height="24" rx="6" fill={active ? "black" : "#E5E7EB"} /><path d="M7 7h3.5l2 2.8 2.5-2.8H17l-3.5 4 4 6h-3.5l-2.3-3.2-2.7 3.2H7l3.8-4.5L7 7z" fill="white" /></svg>),
+    youtube: (<svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect width="24" height="24" rx="6" fill={active ? "#FF0000" : "#E5E7EB"} /><path d="M19.5 8s-.2-1.3-.8-1.9c-.7-.8-1.5-.8-1.9-.8C14.7 5.1 12 5 12 5s-2.7 0-4.8.3c-.4 0-1.2 0-1.9.8-.6.6-.8 1.9-.8 1.9S4.3 9.5 4.3 11v1.4c0 1.5.2 3 .2 3s.2 1.3.8 1.9c.7.8 1.7.7 2.1.8C8.7 18.2 12 18.2 12 18.2s2.7 0 4.8-.3c.4 0 1.2 0 1.9-.8.6-.6.8-1.9.8-1.9s.2-1.5.2-3V11c0-1.5-.2-3-.2-3zm-11.3 6.1V9.9l5.2 2.1-5.2 2.1z" fill="white" /></svg>),
+    facebook: (<svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect width="24" height="24" rx="6" fill={active ? "#1877F2" : "#E5E7EB"} /><path d="M13.5 19v-5.5h2l.3-2.3h-2.3V9.8c0-.6.3-1.2 1.2-1.2H16V6.7s-.9-.1-1.8-.1c-1.8 0-3 1.1-3 3v1.6H9v2.3h2.2V19h2.3z" fill="white" /></svg>),
+    maps: (<svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect width="24" height="24" rx="6" fill={active ? "#34A853" : "#E5E7EB"} /><path d="M12 4C9.2 4 7 6.2 7 9c0 4.2 5 11 5 11s5-6.8 5-11c0-2.8-2.2-5-5-5zm0 6.5c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" fill="white" /></svg>),
+  };
+  return icons[id] || <div className="w-6 h-6 rounded bg-gray-200" />;
+};
+
 const GOALS = [
   "زيادة الطلبات / المبيعات",
   "بناء الوعي بالبراند",
@@ -500,8 +514,8 @@ export default function NewClientPage() {
                 <div className="grid grid-cols-4 gap-2">
                   {PLATFORMS.map(p => (
                     <button key={p.id} onClick={() => toggleArray("platforms", p.id)}
-                      className={`py-3 px-2 rounded-lg text-[11px] border text-center transition-all ${form.platforms.includes(p.id) ? "border-blue-300 bg-primary-light text-primary-500 font-medium shadow-sm" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}>
-                      <div className="font-bold mb-1 text-base" style={{ color: form.platforms.includes(p.id) ? p.color : "#999" }}>{p.label.charAt(0)}</div>
+                      className={`py-3 px-2 rounded-lg text-[11px] border text-center transition-all flex flex-col items-center gap-1.5 ${form.platforms.includes(p.id) ? "border-blue-300 bg-primary-light text-primary-500 font-medium shadow-sm" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}>
+                      <PlatformSVG id={p.id} active={form.platforms.includes(p.id)} />
                       {p.label}
                     </button>
                   ))}
